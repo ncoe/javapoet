@@ -1,6 +1,13 @@
 Change Log
 ==========
 
+JavaPoet 2.0.0 Unreleased
+-----------------------------
+* Updated to Java 17
+* Updated dependencies
+* Replaced direct variable access with getters
+* Filled out javadoc, and resolved other checkstyle issues
+
 JavaPoet 1.13.0 *(2020-06-18)*
 -----------------------------
 
@@ -208,7 +215,7 @@ JavaPoet 1.1.0 *(2015-05-25)*
 JavaPoet 1.0.0 *(2015-01-28)*
 -----------------------------
 
- * This update is a complete rewrite. The project name is now `javapoet`. We renamed the it so you
+ * This update is a complete rewrite. The project name is now `javapoet`. We renamed it so you
    can simultaneously use the old JavaWriter API and our new builder-based APIs in one project.
  * Immutable value objects and builders. Instead of streaming the `.java` file from top to bottom,
    you now define members in whatever way is convenient.
@@ -238,7 +245,7 @@ JavaWriter 2.4.0 *(2014-01-10)*
 -------------------------------
 
  * New: Properly indent hanging lines in field initializers.
- * New: `emitEnumValue` variant which exposes a boolean of whether the current value is the last.
+ * New: `emitEnumValue` variant which exposes a boolean for whether the current value is the last.
 
 
 JavaWriter 2.3.1 *(2013-12-16)*
@@ -298,7 +305,7 @@ JavaWriter 2.0.1 *(2013-06-17)*
 JavaWriter 2.0.0 *(2013-06-06)*
 -------------------------------
 
- * Package name is now `com.squareup.javawriter`.
+ * Package name is now `com.github.ncoe.javawriter`.
  * Support declaring `throws` clause on methods.
 
 

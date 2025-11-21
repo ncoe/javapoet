@@ -11,33 +11,8 @@ the need to write boilerplate while also keeping a single source of truth for th
 Deprecated
 ----------
 
-As of 2020-10-10, Square's JavaPoet project is deprecated. We're proud of our work but we haven't
-kept up on maintaining it.
-
-If you'd like an alternative that supports the latest Java language features, one option is
-[Palantir's JavaPoet](https://github.com/palantir/javapoet).
-
-To switch to that project, you'll need new Maven coordinates:
-
-```diff
-- javapoet = { module = "com.squareup:javapoet", version = "1.13.0" }
-+ javapoet = { module = "com.palantir.javapoet:javapoet", version = "0.5.0" }
-```
-
-And new imports:
-
-```
-sed -i "" \
-  's/com.squareup.javapoet.\([A-Za-z]*\)/com.palantir.javapoet.\1/g' \
-  `find . -name "*.kt" -or -name "*.java"`
-```
-
-And you might need to track some API changes where fields became functions:
-
-```diff
-- javaFile.packageName
-+ javaFile.packageName()
-```
+As of 2020-10-10, Square's JavaPoet project is deprecated.
+Palantir's JavaPoet might be the successor, though has very little human looking commits.
 
 ### Example
 
@@ -921,14 +896,14 @@ Download
 Download [the latest .jar][dl] or depend via Maven:
 ```xml
 <dependency>
-  <groupId>com.squareup</groupId>
+  <groupId>com.github.ncoe</groupId>
   <artifactId>javapoet</artifactId>
-  <version>1.13.0</version>
+  <version>2.0.0</version>
 </dependency>
 ```
 or Gradle:
 ```groovy
-compile 'com.squareup:javapoet:1.13.0'
+compile 'com.github.ncoe:javapoet:2.0.0'
 ```
 
 Snapshots of the development version are available in [Sonatype's `snapshots` repository][snap].
@@ -965,10 +940,11 @@ top-to-bottom in a single pass, a file can be assembled as a tree of declaration
 JavaWriter continues to be available in [GitHub][javawriter] and [Maven Central][javawriter_maven].
 
 
- [dl]: https://search.maven.org/remote_content?g=com.squareup&a=javapoet&v=LATEST
- [snap]: https://oss.sonatype.org/content/repositories/snapshots/com/squareup/javapoet/
- [javadoc]: https://square.github.io/javapoet/1.x/javapoet/
- [javawriter]: https://github.com/square/javapoet/tree/javawriter_2
- [javawriter_maven]: https://search.maven.org/#artifactdetails%7Ccom.squareup%7Cjavawriter%7C2.5.1%7Cjar
+ [dl]: https://search.maven.org/remote_content?g=com.github.ncoe&a=javapoet&v=LATEST
+ [snap]: https://oss.sonatype.org/content/repositories/snapshots/com/github/ncoe/javapoet/
+
+[//]: # ( [javadoc]: https://square.github.io/javapoet/1.x/javapoet/)
+ [javawriter]: https://github.com/ncoe/javapoet/tree/javawriter_2
+ [javawriter_maven]: https://search.maven.org/#artifactdetails%7Ccom.github.ncoe%7Cjavawriter%7C2.5.1%7Cjar
  [formatter]: https://developer.android.com/reference/java/util/Formatter.html
  [modifier]: https://docs.oracle.com/javase/8/docs/api/javax/lang/model/element/Modifier.html
