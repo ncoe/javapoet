@@ -1987,7 +1987,6 @@ public final class TypeSpecTest {
     }
   }
 
-  @SuppressWarnings("DataFlowIssue")
   @Test
   public void nullAnnotationsAddition() {
     try {
@@ -2021,7 +2020,6 @@ public final class TypeSpecTest {
       """);
   }
 
-  @SuppressWarnings("DataFlowIssue")
   @Test
   public void nullFieldsAddition() {
     try {
@@ -2053,7 +2051,6 @@ public final class TypeSpecTest {
       """);
   }
 
-  @SuppressWarnings("DataFlowIssue")
   @Test
   public void nullMethodsAddition() {
     try {
@@ -2099,7 +2096,6 @@ public final class TypeSpecTest {
       """);
   }
 
-  @SuppressWarnings("DataFlowIssue")
   @Test
   public void nullSuperinterfacesAddition() {
     try {
@@ -2166,7 +2162,6 @@ public final class TypeSpecTest {
     }
   }
 
-  @SuppressWarnings("DataFlowIssue")
   @Test
   public void nullTypeVariablesAddition() {
     try {
@@ -2195,7 +2190,6 @@ public final class TypeSpecTest {
       """);
   }
 
-  @SuppressWarnings("DataFlowIssue")
   @Test
   public void nullTypesAddition() {
     try {
@@ -2730,6 +2724,7 @@ public final class TypeSpecTest {
     assertThat(TypeSpec.interfaceBuilder(className).build().getName()).isEqualTo("Example");
     assertThat(TypeSpec.enumBuilder(className).addEnumConstant("A").build().getName()).isEqualTo("Example");
     assertThat(TypeSpec.annotationBuilder(className).build().getName()).isEqualTo("Example");
+    assertThat(TypeSpec.recordBuilder(className).build().getName()).isEqualTo("Example");
   }
 
   @Test
@@ -2906,5 +2901,99 @@ public final class TypeSpecTest {
     TypeSpec.classBuilder(className, Modifier.PUBLIC).build();
     TypeSpec.enumBuilder(className, Modifier.PUBLIC).build();
     TypeSpec.interfaceBuilder(className, Modifier.PUBLIC).build();
+    TypeSpec.recordBuilder(className, Modifier.PUBLIC).build();
+  }
+
+  @Test
+  public void buildRecord() {
+    TypeSpec spec = TypeSpec.recordBuilder("Taco", Modifier.PUBLIC)
+      .addJavadoc("Documentation about the record")
+      .recordConstructor(MethodSpec
+        .constructorBuilder()
+        .addParameter(ParameterSpec
+          .builder(String.class, "text")
+          .addJavadoc("plain text")
+          .build())
+        .addParameter(ParameterSpec
+          .builder(TypeName.INT, "limit")
+          .addJavadoc("some limit")
+          .build())
+        .build())
+      .addMethod(MethodSpec
+        .compactConstructorBuilder(Modifier.PUBLIC)
+        .addParameter(String.class, "text")
+        .beginControlFlow("if (text.length() < limit)")
+        .addStatement("throw new $T($S)", IllegalArgumentException.class, "the limit exceeds the length")
+        .endControlFlow()
+        .build())
+      .addMethod(MethodSpec
+        .methodBuilder("example", Modifier.PUBLIC)
+        .addJavadoc("Just an example.")
+        .returns(ReturnSpec
+          .builder(String.class)
+          .addJavadoc("a substring of the text")
+          .build())
+        .addException(ThrowSpec
+          .builder(RuntimeException.class)
+          .addJavadoc("not actually thrown")
+          .build())
+        .beginControlFlow("if (text.length < limit)")
+        .addStatement("return text")
+        .nextControlFlow("else")
+        .addStatement("return text.substring(0, limit)")
+        .endControlFlow()
+        .build())
+      .build();
+
+    assertThat(toString(spec)).isEqualTo("""
+      package com.github.ncoe.tacos;
+      
+      import java.lang.IllegalArgumentException;
+      import java.lang.RuntimeException;
+      import java.lang.String;
+      
+      /**
+       * Documentation about the record
+       *
+       * @param text plain text
+       * @param limit some limit
+       */
+      public record Taco(String text, int limit) {
+        public Taco {
+          if (text.length() < limit) {
+            throw new IllegalArgumentException("the limit exceeds the length");
+          }
+        }
+      
+        /**
+         * Just an example.
+         *
+         * @return a substring of the text
+         * @throws RuntimeException not actually thrown
+         */
+        public String example() throws RuntimeException {
+          if (text.length < limit) {
+            return text;
+          } else {
+            return text.substring(0, limit);
+          }
+        }
+      }
+      """);
+  }
+
+  @Test
+  public void buildSealedInterface() {
+    TypeSpec spec = TypeSpec.interfaceBuilder("Shape", Modifier.PUBLIC, Modifier.SEALED)
+      .addPermittedSubclass(ClassName.bestGuess("com.github.ncoe.tacos.Rectangle"))
+      .addPermittedSubclasses(List.of(ClassName.bestGuess("com.github.ncoe.tacos.Ellipse")))
+      .build();
+
+    assertThat(toString(spec)).isEqualTo("""
+      package com.github.ncoe.tacos;
+      
+      public sealed interface Shape permits Rectangle, Ellipse {
+      }
+      """);
   }
 }

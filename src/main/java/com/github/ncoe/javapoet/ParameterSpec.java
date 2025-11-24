@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Set;
 
 import static com.github.ncoe.javapoet.Util.checkArgument;
+import static com.github.ncoe.javapoet.Util.checkArgumentNotNull;
 import static com.github.ncoe.javapoet.Util.checkNotNull;
 
 /**
@@ -252,7 +253,7 @@ public final class ParameterSpec {
      * @return this
      */
     public Builder addAnnotations(Iterable<AnnotationSpec> annotationSpecs) {
-      checkArgument(annotationSpecs != null, "annotationSpecs == null");
+      checkArgumentNotNull(annotationSpecs, "annotationSpecs == null");
       for (AnnotationSpec annotationSpec : annotationSpecs) {
         this.annotations.add(annotationSpec);
       }

@@ -16,7 +16,6 @@
 package com.github.ncoe.javapoet;
 
 import com.google.testing.compile.CompilationRule;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -1107,6 +1106,62 @@ public final class JavaFileTest {
       
       class MapType implements Map {
         com.foo.Entry optionalString() {
+          return null;
+        }
+      }
+      """);
+  }
+
+  @Test
+  public void permitted_type() {
+    String source = JavaFile.builder(
+        "com.github.ncoe.javapoet",
+        childTypeBuilder()
+          .addPermittedSubclass(ParentInterface.class)
+          .build()
+      )
+      .build()
+      .toString();
+    assertThat(source).isEqualTo("""
+      package com.github.ncoe.javapoet;
+      
+      import java.lang.String;
+      import java.util.regex.Pattern;
+      
+      class Child permits JavaFileTest.ParentInterface {
+        java.util.Optional<String> optionalString() {
+          return java.util.Optional.empty();
+        }
+      
+        Pattern pattern() {
+          return null;
+        }
+      }
+      """);
+  }
+
+  @Test
+  public void permitted_typeMirror() {
+    String source = JavaFile.builder(
+      "com.github.ncoe.javapoet",
+        childTypeBuilder()
+          .addPermittedSubclass(getElement(ParentInterface.class).asType())
+          .build()
+      )
+      .build()
+      .toString();
+    assertThat(source).isEqualTo("""
+      package com.github.ncoe.javapoet;
+      
+      import java.lang.String;
+      import java.util.regex.Pattern;
+      
+      class Child permits JavaFileTest.ParentInterface {
+        java.util.Optional<String> optionalString() {
+          return java.util.Optional.empty();
+        }
+      
+        Pattern pattern() {
           return null;
         }
       }

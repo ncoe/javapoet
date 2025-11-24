@@ -51,8 +51,18 @@ final class Util {
     return Collections.unmodifiableMap(new LinkedHashMap<>(map));
   }
 
+  static void checkArgumentNotNull(Object value, String format, Object... args) {
+    checkArgument(value != null, format, args);
+  }
+
   static void checkArgument(boolean condition, String format, Object... args) {
     if (!condition) {
+      throw new IllegalArgumentException(String.format(format, args));
+    }
+  }
+
+  static void checkArgumentFalse(boolean condition, String format, Object... args) {
+    if (condition) {
       throw new IllegalArgumentException(String.format(format, args));
     }
   }
@@ -64,33 +74,33 @@ final class Util {
     return reference;
   }
 
-  static void checkIsNull(Object value, String format, Object... args) {
-    checkIsTrue(value == null, format, args);
+  static void checkStateIsNull(Object value, String format, Object... args) {
+    checkStateIsTrue(value == null, format, args);
   }
 
-  static <T> void checkEquals(T lhs, T rhs, String format, Object... args) {
-    checkIsTrue(Objects.equals(lhs, rhs), format, args);
+  static <T> void checkStateIsEqual(T lhs, T rhs, String format, Object... args) {
+    checkStateIsTrue(Objects.equals(lhs, rhs), format, args);
   }
 
-  static <T> void checkNotEquals(T lhs, T rhs, String format, Object... args) {
-    checkIsTrue(!Objects.equals(lhs, rhs), format, args);
+  static <T> void checkStateNotEqual(T lhs, T rhs, String format, Object... args) {
+    checkStateIsTrue(!Objects.equals(lhs, rhs), format, args);
   }
 
-  static <T> void checkSame(T lhs, T rhs, String format, Object... args) {
-    checkIsTrue(lhs == rhs, format, args);
+  static <T> void checkStateIsSame(T lhs, T rhs, String format, Object... args) {
+    checkStateIsTrue(lhs == rhs, format, args);
   }
 
-  static <T> void checkNotSame(T lhs, T rhs, String format, Object... args) {
-    checkIsTrue(lhs != rhs, format, args);
+  static <T> void checkStateNotSame(T lhs, T rhs, String format, Object... args) {
+    checkStateIsTrue(lhs != rhs, format, args);
   }
 
-  static void checkIsFalse(boolean condition, String format, Object... args) {
+  static void checkStateIsFalse(boolean condition, String format, Object... args) {
     if (condition) {
       throw new IllegalStateException(String.format(format, args));
     }
   }
 
-  static void checkIsTrue(boolean condition, String format, Object... args) {
+  static void checkStateIsTrue(boolean condition, String format, Object... args) {
     if (!condition) {
       throw new IllegalStateException(String.format(format, args));
     }

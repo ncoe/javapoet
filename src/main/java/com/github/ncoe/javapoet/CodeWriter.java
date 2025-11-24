@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -33,12 +34,12 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 import static com.github.ncoe.javapoet.Util.checkArgument;
-import static com.github.ncoe.javapoet.Util.checkEquals;
-import static com.github.ncoe.javapoet.Util.checkIsNull;
-import static com.github.ncoe.javapoet.Util.checkNotEquals;
 import static com.github.ncoe.javapoet.Util.checkNotNull;
-import static com.github.ncoe.javapoet.Util.checkNotSame;
-import static com.github.ncoe.javapoet.Util.checkSame;
+import static com.github.ncoe.javapoet.Util.checkStateIsEqual;
+import static com.github.ncoe.javapoet.Util.checkStateIsNull;
+import static com.github.ncoe.javapoet.Util.checkStateIsSame;
+import static com.github.ncoe.javapoet.Util.checkStateNotEqual;
+import static com.github.ncoe.javapoet.Util.checkStateNotSame;
 import static com.github.ncoe.javapoet.Util.stringLiteralWithDoubleQuotes;
 
 /**
@@ -126,14 +127,14 @@ final class CodeWriter {
 
   @SuppressWarnings("UnusedReturnValue")
   public CodeWriter pushPackage(String packageName) {
-    checkSame(this.packageName, NO_PACKAGE, "package already set: %s", this.packageName);
+    checkStateIsSame(this.packageName, NO_PACKAGE, "package already set: %s", this.packageName);
     this.packageName = checkNotNull(packageName, "packageName == null");
     return this;
   }
 
   @SuppressWarnings("UnusedReturnValue")
   public CodeWriter popPackage() {
-    checkNotSame(this.packageName, NO_PACKAGE, "package not set");
+    checkStateNotSame(this.packageName, NO_PACKAGE, "package not set");
     this.packageName = NO_PACKAGE;
     return this;
   }
@@ -232,7 +233,7 @@ final class CodeWriter {
           if (typeName instanceof ClassName candidate && partIterator.hasNext()) {
             if (!codeBlock.formatParts.get(partIterator.nextIndex()).startsWith("$")) {
               if (staticImportClassNames.contains(candidate.canonicalName())) {
-                checkIsNull(deferredTypeName, "pending type for static import?!");
+                checkStateIsNull(deferredTypeName, "pending type for static import?!");
                 deferredTypeName = candidate;
                 break;
               }
@@ -254,12 +255,14 @@ final class CodeWriter {
           break;
 
         case "$[":
-          checkEquals(statementLine, -1, "statement enter $[ followed by statement enter $[");
+          checkStateIsEqual(statementLine, -1, "statement enter $[ followed by statement enter $[");
           statementLine = 0;
           break;
 
         case "$]":
-          checkNotEquals(statementLine, -1, "statement exit $] has no matching statement enter $[");
+          checkStateNotEqual(
+            statementLine, -1, "statement exit $] has no matching statement enter $["
+          );
           if (statementLine > 0) {
             unindent(2); // End a multi-line statement. Decrease the indentation level.
           }
@@ -387,6 +390,63 @@ final class CodeWriter {
       firstTypeVariable = false;
     }
     emit(">");
+  }
+
+  public void emitParameters(
+    Iterable<ParameterSpec> parameters, boolean varargs
+  ) throws IOException {
+    emit(CodeBlock.of("($Z"));
+
+    boolean firstParameter = true;
+    for (Iterator<ParameterSpec> parameterSpec = parameters.iterator(); parameterSpec.hasNext(); ) {
+      ParameterSpec parameter = parameterSpec.next();
+      if (!firstParameter) {
+        emit(",").emitWrappingSpace();
+      }
+      parameter.emit(this, !parameterSpec.hasNext() && varargs);
+      firstParameter = false;
+    }
+
+    emit(")");
+  }
+
+  public void emitJavadocWithContext(
+    CodeBlock javadoc, Iterable<ParameterSpec> parameters,
+    ReturnSpec returns, Iterable<ThrowSpec> exceptions
+  ) throws IOException {
+    CodeBlock.Builder builder = javadoc.toBuilder();
+    boolean emitTagNewline = true;
+    for (ParameterSpec parameterSpec : parameters) {
+      if (!parameterSpec.getJavadoc().isEmpty()) {
+        // Emit a new line before @param section only if the method javadoc is present.
+        if (emitTagNewline && !javadoc.isEmpty()) {
+          builder.add("\n\n");
+        }
+        emitTagNewline = false;
+        builder.add("@param $L $L\n", parameterSpec.getName(), parameterSpec.getJavadoc());
+      }
+    }
+    if (returns != null && !returns.getJavadoc().isEmpty()) {
+      // Emit a new line before @return section only if the
+      // method javadoc is present, and there are no parameters.
+      if (emitTagNewline && !javadoc.isEmpty()) {
+        builder.add("\n\n");
+      }
+      emitTagNewline = false;
+      builder.add("@return $L\n", returns.getJavadoc());
+    }
+    for (ThrowSpec exceptionSpec : exceptions) {
+      if (!exceptionSpec.getJavadoc().isEmpty()) {
+        // Emit a new line before @return section only if the method javadoc is present,
+        // and there are no parameters or return value.
+        if (emitTagNewline && !javadoc.isEmpty()) {
+          builder.add("\n\n");
+        }
+        emitTagNewline = false;
+        builder.add("@throws $T $L\n", exceptionSpec.getType(), exceptionSpec.getJavadoc());
+      }
+    }
+    emitJavadoc(builder.build());
   }
 
   public void popTypeVariables(List<TypeVariableName> typeVariables) {

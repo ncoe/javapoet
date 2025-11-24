@@ -65,7 +65,6 @@ public final class MethodSpecTest {
     return elements.getTypeElement(clazz.getCanonicalName());
   }
 
-  @SuppressWarnings("DataFlowIssue")
   @Test
   public void nullAnnotationsAddition() {
     try {
@@ -76,7 +75,6 @@ public final class MethodSpecTest {
     }
   }
 
-  @SuppressWarnings("DataFlowIssue")
   @Test
   public void nullTypeVariablesAddition() {
     try {
@@ -87,7 +85,6 @@ public final class MethodSpecTest {
     }
   }
 
-  @SuppressWarnings("DataFlowIssue")
   @Test
   public void nullParametersAddition() {
     try {
@@ -98,7 +95,6 @@ public final class MethodSpecTest {
     }
   }
 
-  @SuppressWarnings("DataFlowIssue")
   @Test
   public void nullExceptionsAddition() {
     try {

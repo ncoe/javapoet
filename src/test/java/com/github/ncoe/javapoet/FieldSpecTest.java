@@ -38,7 +38,6 @@ public class FieldSpecTest {
     assertThat(a.toString()).isEqualTo(b.toString());
   }
 
-  @SuppressWarnings("DataFlowIssue")
   @Test
   public void nullAnnotationsAddition() {
     try {

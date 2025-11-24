@@ -26,8 +26,9 @@ import java.util.List;
 import java.util.Set;
 
 import static com.github.ncoe.javapoet.Util.checkArgument;
-import static com.github.ncoe.javapoet.Util.checkIsNull;
+import static com.github.ncoe.javapoet.Util.checkArgumentNotNull;
 import static com.github.ncoe.javapoet.Util.checkNotNull;
+import static com.github.ncoe.javapoet.Util.checkStateIsNull;
 
 /**
  * A generated field declaration.
@@ -213,7 +214,7 @@ public final class FieldSpec {
      * @return this
      */
     public Builder addAnnotations(Iterable<AnnotationSpec> annotationSpecs) {
-      checkArgument(annotationSpecs != null, "annotationSpecs == null");
+      checkArgumentNotNull(annotationSpecs, "annotationSpecs == null");
       for (AnnotationSpec annotationSpec : annotationSpecs) {
         this.annotations.add(annotationSpec);
       }
@@ -281,7 +282,7 @@ public final class FieldSpec {
      * @return this
      */
     public Builder initializer(CodeBlock codeBlock) {
-      checkIsNull(this.initializer, "initializer was already set");
+      checkStateIsNull(this.initializer, "initializer was already set");
       this.initializer = checkNotNull(codeBlock, "codeBlock == null");
       return this;
     }

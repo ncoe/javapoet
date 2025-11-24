@@ -86,7 +86,6 @@ public class ParameterSpecTest {
     }
   }
 
-  @SuppressWarnings("DataFlowIssue")
   @Test
   public void nullAnnotationsAddition() {
     try {
@@ -98,6 +97,7 @@ public class ParameterSpecTest {
     }
   }
 
+  @SuppressWarnings("unused")
   static final class VariableElementFieldClass {
     String name;
   }
@@ -116,6 +116,7 @@ public class ParameterSpecTest {
     }
   }
 
+  @SuppressWarnings("unused")
   static final class VariableElementParameterClass {
     public void foo(@Nullable final String bar) {
     }

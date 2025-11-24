@@ -35,16 +35,17 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
 import static com.github.ncoe.javapoet.Util.checkArgument;
-import static com.github.ncoe.javapoet.Util.checkEquals;
-import static com.github.ncoe.javapoet.Util.checkIsFalse;
-import static com.github.ncoe.javapoet.Util.checkIsNull;
-import static com.github.ncoe.javapoet.Util.checkIsTrue;
+import static com.github.ncoe.javapoet.Util.checkArgumentFalse;
+import static com.github.ncoe.javapoet.Util.checkArgumentNotNull;
 import static com.github.ncoe.javapoet.Util.checkNotNull;
+import static com.github.ncoe.javapoet.Util.checkStateIsEqual;
+import static com.github.ncoe.javapoet.Util.checkStateIsFalse;
+import static com.github.ncoe.javapoet.Util.checkStateIsNull;
+import static com.github.ncoe.javapoet.Util.checkStateIsTrue;
 import static com.github.ncoe.javapoet.Util.requireExactlyOneOf;
 
 /**
@@ -60,6 +61,7 @@ public final class TypeSpec {
   private final List<TypeVariableName> typeVariables;
   private final TypeName superclass;
   private final List<TypeName> superinterfaces;
+  private final List<TypeName> permittedSubclasses;
   private final Map<String, TypeSpec> enumConstants;
   private final List<FieldSpec> fieldSpecs;
   private final CodeBlock staticBlock;
@@ -69,6 +71,7 @@ public final class TypeSpec {
   private final Set<String> nestedTypesSimpleNames;
   private final List<Element> originatingElements;
   private final Set<String> alwaysQualifiedNames;
+  private final MethodSpec recordConstructor;
 
   private TypeSpec(Builder builder) {
     this.kind = builder.kind;
@@ -80,6 +83,7 @@ public final class TypeSpec {
     this.typeVariables = Util.immutableList(builder.typeVariables);
     this.superclass = builder.superclass;
     this.superinterfaces = Util.immutableList(builder.superinterfaces);
+    this.permittedSubclasses = Util.immutableList(builder.permittedSubclasses);
     this.enumConstants = Util.immutableMap(builder.enumConstants);
     this.fieldSpecs = Util.immutableList(builder.fieldSpecs);
     this.staticBlock = builder.staticBlock.build();
@@ -87,6 +91,7 @@ public final class TypeSpec {
     this.methodSpecs = Util.immutableList(builder.methodSpecs);
     this.typeSpecs = Util.immutableList(builder.typeSpecs);
     this.alwaysQualifiedNames = Util.immutableSet(builder.alwaysQualifiedNames);
+    this.recordConstructor = builder.recordConstructor;
 
     nestedTypesSimpleNames = new HashSet<>(builder.typeSpecs.size());
     List<Element> originatingElementsMutable = new ArrayList<>(builder.originatingElements);
@@ -113,6 +118,7 @@ public final class TypeSpec {
     this.typeVariables = Collections.emptyList();
     this.superclass = null;
     this.superinterfaces = Collections.emptyList();
+    this.permittedSubclasses = Collections.emptyList();
     this.enumConstants = Collections.emptyMap();
     this.fieldSpecs = Collections.emptyList();
     this.staticBlock = type.staticBlock;
@@ -122,6 +128,7 @@ public final class TypeSpec {
     this.originatingElements = Collections.emptyList();
     this.nestedTypesSimpleNames = Collections.emptySet();
     this.alwaysQualifiedNames = Collections.emptySet();
+    this.recordConstructor = null;
   }
 
   public Kind getKind() {
@@ -246,6 +253,48 @@ public final class TypeSpec {
    */
   public static Builder classBuilder(ClassName className, Modifier... modifiers) {
     return classBuilder(className).addModifiers(modifiers);
+  }
+
+  /**
+   * Create a record type builder.
+   *
+   * @param name the name
+   * @return the builder
+   */
+  public static Builder recordBuilder(String name) {
+    return new Builder(Kind.RECORD, checkNotNull(name, "name == null"), null);
+  }
+
+  /**
+   * Create a record type builder.
+   *
+   * @param name      the name
+   * @param modifiers the modifiers
+   * @return the builder
+   */
+  public static Builder recordBuilder(String name, Modifier... modifiers) {
+    return recordBuilder(name).addModifiers(modifiers);
+  }
+
+  /**
+   * Create a record type builder.
+   *
+   * @param className the class name
+   * @return the builder
+   */
+  public static Builder recordBuilder(ClassName className) {
+    return recordBuilder(checkNotNull(className, "className == null").simpleName());
+  }
+
+  /**
+   * Create a record type builder.
+   *
+   * @param className the class name
+   * @param modifiers the modifiers
+   * @return the builder
+   */
+  public static Builder recordBuilder(ClassName className, Modifier... modifiers) {
+    return recordBuilder(className).addModifiers(modifiers);
   }
 
   /**
@@ -408,6 +457,7 @@ public final class TypeSpec {
     builder.typeVariables.addAll(typeVariables);
     builder.superclass = superclass;
     builder.superinterfaces.addAll(superinterfaces);
+    builder.permittedSubclasses.addAll(permittedSubclasses);
     builder.enumConstants.putAll(enumConstants);
     builder.fieldSpecs.addAll(fieldSpecs);
     builder.methodSpecs.addAll(methodSpecs);
@@ -450,15 +500,28 @@ public final class TypeSpec {
         // Push an empty type (specifically without nested types) for type-resolution.
         codeWriter.pushType(new TypeSpec(this));
 
-        codeWriter.emitJavadoc(javadoc);
+        if (recordConstructor != null) {
+          codeWriter.emitJavadocWithContext(
+            javadoc, recordConstructor.getParameters(), null, Collections.emptyList()
+          );
+        } else {
+          codeWriter.emitJavadoc(javadoc);
+        }
+
         codeWriter.emitAnnotations(annotations, false);
         codeWriter.emitModifiers(modifiers, Util.union(implicitModifiers, kind.asMemberModifiers));
-        if (kind == Kind.ANNOTATION) {
-          codeWriter.emit("$L $L", "@interface", name);
-        } else {
-          codeWriter.emit("$L $L", kind.name().toLowerCase(Locale.US), name);
-        }
+        codeWriter.emit("$L $L", kind.keyword, name);
         codeWriter.emitTypeVariables(typeVariables);
+
+        if (kind == Kind.RECORD) {
+          if (recordConstructor != null) {
+            codeWriter.emitParameters(
+              recordConstructor.getParameters(), recordConstructor.isVarargs()
+            );
+          } else {
+            codeWriter.emitParameters(List.of(), false);
+          }
+        }
 
         List<TypeName> extendsTypes;
         List<TypeName> implementsTypes;
@@ -488,6 +551,18 @@ public final class TypeSpec {
           codeWriter.emit(" implements");
           boolean firstType = true;
           for (TypeName type : implementsTypes) {
+            if (!firstType) {
+              codeWriter.emit(",");
+            }
+            codeWriter.emit(" $T", type);
+            firstType = false;
+          }
+        }
+
+        if (!permittedSubclasses.isEmpty()) {
+          codeWriter.emit(" permits");
+          boolean firstType = true;
+          for (TypeName type : permittedSubclasses) {
             if (!firstType) {
               codeWriter.emit(",");
             }
@@ -652,46 +727,58 @@ public final class TypeSpec {
       Collections.emptySet(),
       Collections.emptySet(),
       Collections.emptySet(),
-      Collections.emptySet()
+      Collections.emptySet(),
+      "class"
     ),
 
-    //todo record builder
-    //todo sealed classes
+    RECORD(
+      Collections.emptySet(),
+      Collections.emptySet(),
+      Collections.emptySet(),
+      Collections.emptySet(),
+      "record"
+    ),
 
     INTERFACE(
       Util.immutableSet(Arrays.asList(Modifier.PUBLIC, Modifier.STATIC, Modifier.FINAL)),
       Util.immutableSet(Arrays.asList(Modifier.PUBLIC, Modifier.ABSTRACT)),
       Util.immutableSet(Arrays.asList(Modifier.PUBLIC, Modifier.STATIC)),
-      Util.immutableSet(Collections.singletonList(Modifier.STATIC))
+      Util.immutableSet(Collections.singletonList(Modifier.STATIC)),
+      "interface"
     ),
 
     ENUM(
       Collections.emptySet(),
       Collections.emptySet(),
       Collections.emptySet(),
-      Collections.singleton(Modifier.STATIC)
+      Collections.singleton(Modifier.STATIC),
+      "enum"
     ),
 
     ANNOTATION(
       Util.immutableSet(Arrays.asList(Modifier.PUBLIC, Modifier.STATIC, Modifier.FINAL)),
       Util.immutableSet(Arrays.asList(Modifier.PUBLIC, Modifier.ABSTRACT)),
       Util.immutableSet(Arrays.asList(Modifier.PUBLIC, Modifier.STATIC)),
-      Util.immutableSet(Collections.singletonList(Modifier.STATIC))
+      Util.immutableSet(Collections.singletonList(Modifier.STATIC)),
+      "@interface"
     );
 
     private final Set<Modifier> implicitFieldModifiers;
     private final Set<Modifier> implicitMethodModifiers;
     private final Set<Modifier> implicitTypeModifiers;
     private final Set<Modifier> asMemberModifiers;
+    private final String keyword;
 
     Kind(
       Set<Modifier> implicitFieldModifiers, Set<Modifier> implicitMethodModifiers,
-      Set<Modifier> implicitTypeModifiers, Set<Modifier> asMemberModifiers
+      Set<Modifier> implicitTypeModifiers, Set<Modifier> asMemberModifiers,
+      String keyword
     ) {
       this.implicitFieldModifiers = implicitFieldModifiers;
       this.implicitMethodModifiers = implicitMethodModifiers;
       this.implicitTypeModifiers = implicitTypeModifiers;
       this.asMemberModifiers = asMemberModifiers;
+      this.keyword = keyword;
     }
   }
 
@@ -702,6 +789,7 @@ public final class TypeSpec {
     private final Kind kind;
     private final String name;
     private final CodeBlock anonymousTypeArguments;
+    private MethodSpec recordConstructor;
 
     private final CodeBlock.Builder javadoc = CodeBlock.builder();
     private TypeName superclass = ClassName.OBJECT;
@@ -713,6 +801,7 @@ public final class TypeSpec {
     private final List<Modifier> modifiers = new ArrayList<>();
     private final List<TypeVariableName> typeVariables = new ArrayList<>();
     private final List<TypeName> superinterfaces = new ArrayList<>();
+    private final List<TypeName> permittedSubclasses = new ArrayList<>();
     private final List<FieldSpec> fieldSpecs = new ArrayList<>();
     private final List<MethodSpec> methodSpecs = new ArrayList<>();
     private final List<TypeSpec> typeSpecs = new ArrayList<>();
@@ -796,7 +885,7 @@ public final class TypeSpec {
      * @return this
      */
     public Builder addAnnotations(Iterable<AnnotationSpec> annotationSpecs) {
-      checkArgument(annotationSpecs != null, "annotationSpecs == null");
+      checkArgumentNotNull(annotationSpecs, "annotationSpecs == null");
       for (AnnotationSpec annotationSpec : annotationSpecs) {
         this.annotations.add(annotationSpec);
       }
@@ -853,7 +942,7 @@ public final class TypeSpec {
      * @return this
      */
     public Builder addTypeVariables(Iterable<TypeVariableName> typeVariables) {
-      checkArgument(typeVariables != null, "typeVariables == null");
+      checkArgumentNotNull(typeVariables, "typeVariables == null");
       for (TypeVariableName typeVariable : typeVariables) {
         this.typeVariables.add(typeVariable);
       }
@@ -878,11 +967,11 @@ public final class TypeSpec {
      * @return this
      */
     public Builder superclass(TypeName superclass) {
-      checkEquals(this.kind, Kind.CLASS, "only classes have super classes, not " + this.kind);
-      checkEquals(
+      checkStateIsEqual(this.kind, Kind.CLASS, "only classes have super classes, not " + this.kind);
+      checkStateIsEqual(
         this.superclass, ClassName.OBJECT, "superclass already set to " + this.superclass
       );
-      checkArgument(!superclass.isPrimitive(), "superclass may not be a primitive");
+      checkArgumentFalse(superclass.isPrimitive(), "superclass may not be a primitive");
       this.superclass = superclass;
       return this;
     }
@@ -948,7 +1037,7 @@ public final class TypeSpec {
      * @return this
      */
     public Builder addSuperinterfaces(Iterable<? extends TypeName> superinterfaces) {
-      checkArgument(superinterfaces != null, "superinterfaces == null");
+      checkArgumentNotNull(superinterfaces, "superinterfaces == null");
       for (TypeName superinterface : superinterfaces) {
         addSuperinterface(superinterface);
       }
@@ -962,7 +1051,7 @@ public final class TypeSpec {
      * @return this
      */
     public Builder addSuperinterface(TypeName superinterface) {
-      checkArgument(superinterface != null, "superinterface == null");
+      checkArgumentNotNull(superinterface, "superinterface == null");
       this.superinterfaces.add(superinterface);
       return this;
     }
@@ -1034,6 +1123,108 @@ public final class TypeSpec {
     }
 
     /**
+     * Define the record constructor.
+     *
+     * @param recordConstructor the record constructor
+     * @return this
+     */
+    public Builder recordConstructor(MethodSpec recordConstructor) {
+      if (kind != Kind.RECORD) {
+        throw new UnsupportedOperationException(kind + " can't have record constructor");
+      }
+      this.recordConstructor = recordConstructor;
+      return this;
+    }
+
+    /**
+     * Add a permitted subclass to a sealed class.
+     *
+     * @param permittedSubclass the permitted subclass
+     * @return this
+     */
+    public Builder addPermittedSubclass(TypeName permittedSubclass) {
+      checkStateIsTrue(
+        this.kind == Kind.CLASS || this.kind == Kind.INTERFACE,
+        "only classes and interfaces can have permitted subclasses, not " + this.kind
+      );
+      checkArgumentNotNull(permittedSubclass, "permittedSubclass == null");
+      this.permittedSubclasses.add(permittedSubclass);
+      return this;
+    }
+
+    /**
+     * Add a permitted subclass to a sealed class.
+     *
+     * @param permittedSubclass          the permitted subclass
+     * @param avoidNestedTypeNameClashes true if nested name clashes should be avoided
+     * @return this
+     */
+    public Builder addPermittedSubclass(
+      Type permittedSubclass, boolean avoidNestedTypeNameClashes
+    ) {
+      addPermittedSubclass(TypeName.get(permittedSubclass));
+      if (avoidNestedTypeNameClashes) {
+        Class<?> clazz = getRawType(permittedSubclass);
+        if (clazz != null) {
+          avoidClashesWithNestedClasses(clazz);
+        }
+      }
+      return this;
+    }
+
+    /**
+     * Add a permitted subclass to a sealed class.
+     *
+     * @param permittedSubclass the permitted subclass
+     * @return this
+     */
+    public Builder addPermittedSubclass(Type permittedSubclass) {
+      return addPermittedSubclass(permittedSubclass, true);
+    }
+
+    /**
+     * Add a permitted subclass to a sealed class.
+     *
+     * @param permittedSubclass          the permitted subclass
+     * @param avoidNestedTypeNameClashes true if nested name clashes should be avoided
+     * @return this
+     */
+    public Builder addPermittedSubclass(
+      TypeMirror permittedSubclass, boolean avoidNestedTypeNameClashes
+    ) {
+      addPermittedSubclass(TypeName.get(permittedSubclass));
+      if (avoidNestedTypeNameClashes && permittedSubclass instanceof DeclaredType declaredType) {
+        TypeElement superInterfaceElement = (TypeElement) declaredType.asElement();
+        avoidClashesWithNestedClasses(superInterfaceElement);
+      }
+      return this;
+    }
+
+    /**
+     * Add a permitted subclass to a sealed class.
+     *
+     * @param permittedSubclass the permitted subclass
+     * @return this
+     */
+    public Builder addPermittedSubclass(TypeMirror permittedSubclass) {
+      return addPermittedSubclass(permittedSubclass, true);
+    }
+
+    /**
+     * Add a collection of permitted subclasses.
+     *
+     * @param permittedSubclasses the permitted subclasses
+     * @return this
+     */
+    public Builder addPermittedSubclasses(Iterable<? extends TypeName> permittedSubclasses) {
+      checkArgumentNotNull(permittedSubclasses, "permittedSubclasses == null");
+      for (TypeName permittedSubclass : permittedSubclasses) {
+        addPermittedSubclass(permittedSubclass);
+      }
+      return this;
+    }
+
+    /**
      * Add an enumeration constant.
      *
      * @param name the name
@@ -1062,7 +1253,7 @@ public final class TypeSpec {
      * @return this
      */
     public Builder addFields(Iterable<FieldSpec> fieldSpecs) {
-      checkArgument(fieldSpecs != null, "fieldSpecs == null");
+      checkArgumentNotNull(fieldSpecs, "fieldSpecs == null");
       for (FieldSpec fieldSpec : fieldSpecs) {
         addField(fieldSpec);
       }
@@ -1140,7 +1331,7 @@ public final class TypeSpec {
      * @return this
      */
     public Builder addMethods(Iterable<MethodSpec> methodSpecs) {
-      checkArgument(methodSpecs != null, "methodSpecs == null");
+      checkArgumentNotNull(methodSpecs, "methodSpecs == null");
       for (MethodSpec methodSpec : methodSpecs) {
         addMethod(methodSpec);
       }
@@ -1165,7 +1356,7 @@ public final class TypeSpec {
      * @return this
      */
     public Builder addTypes(Iterable<TypeSpec> typeSpecs) {
-      checkArgument(typeSpecs != null, "typeSpecs == null");
+      checkArgumentNotNull(typeSpecs, "typeSpecs == null");
       for (TypeSpec typeSpec : typeSpecs) {
         addType(typeSpec);
       }
@@ -1201,10 +1392,10 @@ public final class TypeSpec {
      * @return this
      */
     public Builder alwaysQualify(String... simpleNames) {
-      checkArgument(simpleNames != null, "simpleNames == null");
+      checkArgumentNotNull(simpleNames, "simpleNames == null");
       for (String name : simpleNames) {
-        checkArgument(
-          name != null,
+        checkArgumentNotNull(
+          name,
           "null entry in simpleNames array: %s",
           Arrays.toString(simpleNames)
         );
@@ -1237,7 +1428,7 @@ public final class TypeSpec {
      * @return this builder instance.
      */
     public Builder avoidClashesWithNestedClasses(TypeElement typeElement) {
-      checkArgument(typeElement != null, "typeElement == null");
+      checkArgumentNotNull(typeElement, "typeElement == null");
       for (TypeElement nestedType : ElementFilter.typesIn(typeElement.getEnclosedElements())) {
         alwaysQualify(nestedType.getSimpleName().toString());
       }
@@ -1279,7 +1470,7 @@ public final class TypeSpec {
      * @return this builder instance.
      */
     public Builder avoidClashesWithNestedClasses(Class<?> clazz) {
-      checkArgument(clazz != null, "clazz == null");
+      checkArgumentNotNull(clazz, "clazz == null");
       for (Class<?> nestedType : clazz.getDeclaredClasses()) {
         alwaysQualify(nestedType.getSimpleName());
       }
@@ -1304,27 +1495,36 @@ public final class TypeSpec {
       }
 
       if (!modifiers.isEmpty()) {
-        checkIsNull(anonymousTypeArguments, "forbidden on anonymous types.");
+        checkStateIsNull(anonymousTypeArguments, "forbidden on anonymous types.");
         for (Modifier modifier : modifiers) {
-          checkArgument(modifier != null, "modifiers contain null");
+          checkArgumentNotNull(modifier, "modifiers contain null");
+        }
+      }
+
+      if (recordConstructor != null) {
+        for (ParameterSpec recordComponent : recordConstructor.getParameters()) {
+          checkStateIsTrue(
+            recordComponent.getModifiers().isEmpty(),
+            "record components must not have modifiers"
+          );
         }
       }
 
       for (TypeName superinterface : superinterfaces) {
-        checkArgument(superinterface != null, "superinterfaces contains null");
+        checkArgumentNotNull(superinterface, "superinterfaces contains null");
       }
 
       if (!typeVariables.isEmpty()) {
-        checkIsNull(anonymousTypeArguments, "typeVariables are forbidden on anonymous types.");
+        checkStateIsNull(anonymousTypeArguments, "typeVariables are forbidden on anonymous types.");
         for (TypeVariableName typeVariableName : typeVariables) {
-          checkArgument(typeVariableName != null, "typeVariables contain null");
+          checkArgumentNotNull(typeVariableName, "typeVariables contain null");
         }
       }
 
       for (Map.Entry<String, TypeSpec> enumConstant : enumConstants.entrySet()) {
-        checkEquals(kind, Kind.ENUM, "%s is not enum", this.name);
-        checkArgument(
-          enumConstant.getValue().anonymousTypeArguments != null,
+        checkStateIsEqual(kind, Kind.ENUM, "%s is not enum", this.name);
+        checkArgumentNotNull(
+          enumConstant.getValue().anonymousTypeArguments,
           "enum constants must have anonymous type arguments"
         );
         checkArgument(SourceVersion.isName(name), "not a valid enum constant: %s", name);
@@ -1334,11 +1534,17 @@ public final class TypeSpec {
         if (kind == Kind.INTERFACE || kind == Kind.ANNOTATION) {
           requireExactlyOneOf(fieldSpec.getModifiers(), Modifier.PUBLIC, Modifier.PRIVATE);
           Set<Modifier> check = EnumSet.of(Modifier.STATIC, Modifier.FINAL);
-          checkIsTrue(
+          checkStateIsTrue(
             fieldSpec.getModifiers().containsAll(check),
             "%s %s.%s requires modifiers %s",
             kind, name, fieldSpec.getName(), check
           );
+        }
+        if (kind == Kind.RECORD) {
+          checkStateIsTrue(
+            fieldSpec.hasModifier(Modifier.STATIC),
+            "%s %s.%s must be static",
+            kind, name, fieldSpec.getName());
         }
       }
 
@@ -1346,12 +1552,12 @@ public final class TypeSpec {
         if (kind == Kind.INTERFACE) {
           requireExactlyOneOf(methodSpec.getModifiers(), Modifier.PUBLIC, Modifier.PRIVATE);
           if (methodSpec.getModifiers().contains(Modifier.PRIVATE)) {
-            checkIsFalse(
+            checkStateIsFalse(
               methodSpec.hasModifier(Modifier.DEFAULT),
               "%s %s.%s cannot be private and default",
               kind, name, methodSpec.getName()
             );
-            checkIsFalse(
+            checkStateIsFalse(
               methodSpec.hasModifier(Modifier.ABSTRACT),
               "%s %s.%s cannot be private and abstract",
               kind, name, methodSpec.getName()
@@ -1362,23 +1568,30 @@ public final class TypeSpec {
             );
           }
         } else if (kind == Kind.ANNOTATION) {
-          checkEquals(
+          checkStateIsEqual(
             methodSpec.getModifiers(), kind.implicitMethodModifiers,
             "%s %s.%s requires modifiers %s",
             kind, name, methodSpec.getName(), kind.implicitMethodModifiers
           );
         }
         if (kind != Kind.ANNOTATION) {
-          checkIsNull(
+          checkStateIsNull(
             methodSpec.getDefaultValue(),
             "%s %s.%s cannot have a default value",
             kind, name, methodSpec.getName()
           );
         }
         if (kind != Kind.INTERFACE) {
-          checkIsFalse(
+          checkStateIsFalse(
             methodSpec.hasModifier(Modifier.DEFAULT),
             "%s %s.%s cannot be default",
+            kind, name, methodSpec.getName()
+          );
+        }
+        if (kind == Kind.RECORD) {
+          checkStateIsFalse(
+            methodSpec.hasModifier(Modifier.NATIVE),
+            "%s %s.%s cannot be native",
             kind, name, methodSpec.getName()
           );
         }
@@ -1392,7 +1605,10 @@ public final class TypeSpec {
         );
       }
 
-      boolean isAbstract = modifiers.contains(Modifier.ABSTRACT) || kind != Kind.CLASS;
+      boolean isAbstract = switch (kind) {
+        case CLASS, RECORD -> modifiers.contains(Modifier.ABSTRACT);
+        case ENUM, ANNOTATION, INTERFACE -> true;
+      };
       for (MethodSpec methodSpec : methodSpecs) {
         checkArgument(
           isAbstract || !methodSpec.hasModifier(Modifier.ABSTRACT),

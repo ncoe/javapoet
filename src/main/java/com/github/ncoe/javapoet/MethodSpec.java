@@ -30,16 +30,17 @@ import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import static com.github.ncoe.javapoet.Util.checkArgument;
-import static com.github.ncoe.javapoet.Util.checkIsNull;
-import static com.github.ncoe.javapoet.Util.checkNotEquals;
+import static com.github.ncoe.javapoet.Util.checkArgumentFalse;
+import static com.github.ncoe.javapoet.Util.checkArgumentNotNull;
 import static com.github.ncoe.javapoet.Util.checkNotNull;
+import static com.github.ncoe.javapoet.Util.checkStateIsNull;
+import static com.github.ncoe.javapoet.Util.checkStateNotEqual;
 
 /**
  * A generated constructor or method declaration.
@@ -58,6 +59,7 @@ public final class MethodSpec {
   private final List<ThrowSpec> exceptions;
   private final CodeBlock code;
   private final CodeBlock defaultValue;
+  private final boolean compactConstructor;
 
   private MethodSpec(Builder builder) {
     CodeBlock code = builder.code.build();
@@ -83,6 +85,7 @@ public final class MethodSpec {
     this.exceptions = Util.immutableList(builder.exceptions);
     this.defaultValue = builder.defaultValue;
     this.code = code;
+    this.compactConstructor = builder.compactConstructor;
   }
 
   public String getName() {
@@ -105,6 +108,10 @@ public final class MethodSpec {
     return parameters;
   }
 
+  public boolean isVarargs() {
+    return varargs;
+  }
+
   public List<ThrowSpec> getExceptions() {
     return exceptions;
   }
@@ -121,7 +128,7 @@ public final class MethodSpec {
   void emit(
     CodeWriter codeWriter, String enclosingName, Set<Modifier> implicitModifiers
   ) throws IOException {
-    codeWriter.emitJavadoc(javadocWithParameters());
+    codeWriter.emitJavadocWithContext(javadoc, parameters, returnSpec, exceptions);
     codeWriter.emitAnnotations(annotations, false);
     codeWriter.emitModifiers(modifiers, implicitModifiers);
 
@@ -130,23 +137,15 @@ public final class MethodSpec {
       codeWriter.emit(" ");
     }
 
-    if (isConstructor()) {
-      codeWriter.emit("$L($Z", enclosingName);
+    if (compactConstructor) {
+      codeWriter.emit("$L", enclosingName);
+    } else if (isConstructor()) {
+      codeWriter.emit("$L", enclosingName);
+      codeWriter.emitParameters(parameters, varargs);
     } else {
-      codeWriter.emit("$T $L($Z", returnSpec.getType(), name);
+      codeWriter.emit("$T $L", returnSpec.getType(), name);
+      codeWriter.emitParameters(parameters, varargs);
     }
-
-    boolean firstParameter = true;
-    for (Iterator<ParameterSpec> i = parameters.iterator(); i.hasNext(); ) {
-      ParameterSpec parameter = i.next();
-      if (!firstParameter) {
-        codeWriter.emit(",").emitWrappingSpace();
-      }
-      parameter.emit(codeWriter, !i.hasNext() && varargs);
-      firstParameter = false;
-    }
-
-    codeWriter.emit(")");
 
     if (defaultValue != null && !defaultValue.isEmpty()) {
       codeWriter.emit(" default ");
@@ -180,42 +179,6 @@ public final class MethodSpec {
         .emit("}\n");
     }
     codeWriter.popTypeVariables(typeVariables);
-  }
-
-  private CodeBlock javadocWithParameters() {
-    CodeBlock.Builder builder = javadoc.toBuilder();
-    boolean emitTagNewline = true;
-    for (ParameterSpec parameterSpec : parameters) {
-      if (!parameterSpec.getJavadoc().isEmpty()) {
-        // Emit a new line before @param section only if the method javadoc is present.
-        if (emitTagNewline && !javadoc.isEmpty()) {
-          builder.add("\n\n");
-        }
-        emitTagNewline = false;
-        builder.add("@param $L $L\n", parameterSpec.getName(), parameterSpec.getJavadoc());
-      }
-    }
-    if (returnSpec != null && !returnSpec.getJavadoc().isEmpty()) {
-      // Emit a new line before @return section only if the
-      // method javadoc is present, and there are no parameters.
-      if (emitTagNewline && !javadoc.isEmpty()) {
-        builder.add("\n");
-      }
-      emitTagNewline = false;
-      builder.add("@return $L\n", returnSpec.getJavadoc());
-    }
-    for (ThrowSpec exceptionSpec : exceptions) {
-      if (!exceptionSpec.getJavadoc().isEmpty()) {
-        // Emit a new line before @return section only if the method javadoc is present,
-        // and there are no parameters or return value.
-        if (emitTagNewline && !javadoc.isEmpty()) {
-          builder.add("\n");
-        }
-        emitTagNewline = false;
-        builder.add("@throws $L $L\n", exceptionSpec.getType(), exceptionSpec.getJavadoc());
-      }
-    }
-    return builder.build();
   }
 
   /**
@@ -270,7 +233,7 @@ public final class MethodSpec {
    * @return the builder
    */
   public static Builder methodBuilder(String name) {
-    return new Builder(name);
+    return new Builder(name, false);
   }
 
   /**
@@ -290,7 +253,7 @@ public final class MethodSpec {
    * @return the builder
    */
   public static Builder constructorBuilder() {
-    return new Builder(CONSTRUCTOR);
+    return new Builder(CONSTRUCTOR, false);
   }
 
   /**
@@ -301,6 +264,25 @@ public final class MethodSpec {
    */
   public static Builder constructorBuilder(Modifier... modifiers) {
     return constructorBuilder().addModifiers(modifiers);
+  }
+
+  /**
+   * Create builder for a compact record constructor.
+   *
+   * @return the builder
+   */
+  public static Builder compactConstructorBuilder() {
+    return new Builder(CONSTRUCTOR, true);
+  }
+
+  /**
+   * Create builder for a compact record constructor.
+   *
+   * @param modifiers the modifiers
+   * @return the builder
+   */
+  public static Builder compactConstructorBuilder(Modifier... modifiers) {
+    return compactConstructorBuilder().addModifiers(modifiers);
   }
 
   /**
@@ -403,7 +385,7 @@ public final class MethodSpec {
    * @return the builder
    */
   public Builder toBuilder() {
-    Builder builder = new Builder(name);
+    Builder builder = new Builder(name, compactConstructor);
     builder.javadoc.add(javadoc);
     builder.annotations.addAll(annotations);
     builder.modifiers.addAll(modifiers);
@@ -435,8 +417,11 @@ public final class MethodSpec {
     private final List<Modifier> modifiers = new ArrayList<>();
     private final List<ParameterSpec> parameters = new ArrayList<>();
 
-    private Builder(String name) {
+    private final boolean compactConstructor;
+
+    private Builder(String name, boolean compactConstructor) {
       setName(name);
+      this.compactConstructor = compactConstructor;
     }
 
     public List<TypeVariableName> getTypeVariables() {
@@ -503,7 +488,7 @@ public final class MethodSpec {
      * @return this
      */
     public Builder addAnnotations(Iterable<AnnotationSpec> annotationSpecs) {
-      checkArgument(annotationSpecs != null, "annotationSpecs == null");
+      checkArgumentNotNull(annotationSpecs, "annotationSpecs == null");
       for (AnnotationSpec annotationSpec : annotationSpecs) {
         this.annotations.add(annotationSpec);
       }
@@ -575,7 +560,7 @@ public final class MethodSpec {
      * @return this
      */
     public Builder addTypeVariables(Iterable<TypeVariableName> typeVariables) {
-      checkArgument(typeVariables != null, "typeVariables == null");
+      checkArgumentNotNull(typeVariables, "typeVariables == null");
       for (TypeVariableName typeVariable : typeVariables) {
         this.typeVariables.add(typeVariable);
       }
@@ -611,7 +596,7 @@ public final class MethodSpec {
      * @return this
      */
     public Builder returns(TypeName returnType) {
-      checkNotEquals(name, CONSTRUCTOR, "constructor cannot have return type.");
+      checkStateNotEqual(name, CONSTRUCTOR, "constructor cannot have return type.");
       return returns(ReturnSpec.builder(returnType).build());
     }
 
@@ -632,7 +617,8 @@ public final class MethodSpec {
      * @return this
      */
     public Builder addParameters(Iterable<ParameterSpec> parameterSpecs) {
-      checkArgument(parameterSpecs != null, "parameterSpecs == null");
+      checkArgumentNotNull(parameterSpecs, "parameterSpecs == null");
+      checkArgumentFalse(compactConstructor, "compact constructors do not have parameters");
       for (ParameterSpec parameterSpec : parameterSpecs) {
         this.parameters.add(parameterSpec);
       }
@@ -701,7 +687,7 @@ public final class MethodSpec {
      * @return this
      */
     public Builder addExceptions(Iterable<? extends TypeName> exceptions) {
-      checkArgument(exceptions != null, "exceptions == null");
+      checkArgumentNotNull(exceptions, "exceptions == null");
       for (TypeName exception : exceptions) {
         addException(exception);
       }
@@ -804,7 +790,7 @@ public final class MethodSpec {
      * @return this
      */
     public Builder defaultValue(CodeBlock codeBlock) {
-      checkIsNull(this.defaultValue, "defaultValue was already set");
+      checkStateIsNull(this.defaultValue, "defaultValue was already set");
       this.defaultValue = checkNotNull(codeBlock, "codeBlock == null");
       return this;
     }

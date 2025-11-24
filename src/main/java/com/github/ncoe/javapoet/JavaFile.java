@@ -40,6 +40,7 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import static com.github.ncoe.javapoet.Util.checkArgument;
+import static com.github.ncoe.javapoet.Util.checkArgumentNotNull;
 import static com.github.ncoe.javapoet.Util.checkNotNull;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -424,11 +425,11 @@ public final class JavaFile {
      * @return this
      */
     public Builder addStaticImport(ClassName className, String... names) {
-      checkArgument(className != null, "className == null");
-      checkArgument(names != null, "names == null");
+      checkArgumentNotNull(className, "className == null");
+      checkArgumentNotNull(names, "names == null");
       checkArgument(names.length > 0, "names array is empty");
       for (String name : names) {
-        checkArgument(name != null, "null entry in names array: %s", Arrays.toString(names));
+        checkArgumentNotNull(name, "null entry in names array: %s", Arrays.toString(names));
         staticImports.add(className.canonicalName() + "." + name);
       }
       return this;
