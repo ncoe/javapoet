@@ -48,6 +48,7 @@ final class CodeWriter {
   @SuppressWarnings("StringOperationCanBeSimplified")
   private static final String NO_PACKAGE = new String();
   private static final Pattern LINE_BREAKING_PATTERN = Pattern.compile("\\R");
+  private static final int DEFAULT_COLUMN_LIMIT = 100;
 
   private final String indent;
   private final LineWrapper out;
@@ -78,14 +79,14 @@ final class CodeWriter {
   }
 
   CodeWriter(Appendable out, String indent, Set<String> staticImports, Set<String> alwaysQualify) {
-    this(out, indent, Collections.emptyMap(), staticImports, alwaysQualify);
+    this(out, indent, Collections.emptyMap(), staticImports, alwaysQualify, DEFAULT_COLUMN_LIMIT);
   }
 
   CodeWriter(
     Appendable out, String indent, Map<String, ClassName> importedTypes,
-    Set<String> staticImports, Set<String> alwaysQualify
+    Set<String> staticImports, Set<String> alwaysQualify, int columnLimit
   ) {
-    this.out = new LineWrapper(out, indent, 100); // todo ncoe: allow for setting the limit
+    this.out = new LineWrapper(out, indent, columnLimit);
     this.indent = checkNotNull(indent, "indent == null");
     this.importedTypes = checkNotNull(importedTypes, "importedTypes == null");
     this.staticImports = checkNotNull(staticImports, "staticImports == null");
@@ -119,6 +120,7 @@ final class CodeWriter {
     return unindent(1);
   }
 
+  @SuppressWarnings("UnusedReturnValue")
   public CodeWriter pushPackage(String packageName) {
     //noinspection StringEquality
     checkState(this.packageName == NO_PACKAGE, "package already set: %s", this.packageName);
@@ -126,6 +128,7 @@ final class CodeWriter {
     return this;
   }
 
+  @SuppressWarnings("UnusedReturnValue")
   public CodeWriter popPackage() {
     //noinspection StringEquality
     checkState(this.packageName != NO_PACKAGE, "package not set");

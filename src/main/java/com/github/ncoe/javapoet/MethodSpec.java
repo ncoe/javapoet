@@ -51,10 +51,10 @@ public final class MethodSpec {
   private final List<AnnotationSpec> annotations;
   private final Set<Modifier> modifiers;
   private final List<TypeVariableName> typeVariables;
-  private final TypeName returnType;
+  private final ReturnSpec returnSpec;
   private final List<ParameterSpec> parameters;
   private final boolean varargs;
-  private final List<TypeName> exceptions;
+  private final List<ThrowSpec> exceptions;
   private final CodeBlock code;
   private final CodeBlock defaultValue;
 
@@ -76,7 +76,7 @@ public final class MethodSpec {
     this.annotations = Util.immutableList(builder.annotations);
     this.modifiers = Util.immutableSet(builder.modifiers);
     this.typeVariables = Util.immutableList(builder.typeVariables);
-    this.returnType = builder.returnType;
+    this.returnSpec = builder.returnSpec;
     this.parameters = Util.immutableList(builder.parameters);
     this.varargs = builder.varargs;
     this.exceptions = Util.immutableList(builder.exceptions);
@@ -104,7 +104,7 @@ public final class MethodSpec {
     return parameters;
   }
 
-  public List<TypeName> getExceptions() {
+  public List<ThrowSpec> getExceptions() {
     return exceptions;
   }
 
@@ -132,7 +132,7 @@ public final class MethodSpec {
     if (isConstructor()) {
       codeWriter.emit("$L($Z", enclosingName);
     } else {
-      codeWriter.emit("$T $L($Z", returnType, name);
+      codeWriter.emit("$T $L($Z", returnSpec.getType(), name);
     }
 
     boolean firstParameter = true;
@@ -155,11 +155,11 @@ public final class MethodSpec {
     if (!exceptions.isEmpty()) {
       codeWriter.emitWrappingSpace().emit("throws");
       boolean firstException = true;
-      for (TypeName exception : exceptions) {
+      for (ThrowSpec exception : exceptions) {
         if (!firstException) {
           codeWriter.emit(",");
         }
-        codeWriter.emitWrappingSpace().emit("$T", exception);
+        codeWriter.emitWrappingSpace().emit("$T", exception.getType());
         firstException = false;
       }
     }
@@ -188,14 +188,32 @@ public final class MethodSpec {
       if (!parameterSpec.getJavadoc().isEmpty()) {
         // Emit a new line before @param section only if the method javadoc is present.
         if (emitTagNewline && !javadoc.isEmpty()) {
+          builder.add("\n\n");
+        }
+        emitTagNewline = false;
+        builder.add("@param $L $L\n", parameterSpec.getName(), parameterSpec.getJavadoc());
+      }
+    }
+    if (returnSpec != null && !returnSpec.getJavadoc().isEmpty()) {
+      // Emit a new line before @return section only if the
+      // method javadoc is present, and there are no parameters.
+      if (emitTagNewline && !javadoc.isEmpty()) {
+        builder.add("\n");
+      }
+      emitTagNewline = false;
+      builder.add("@return $L\n", returnSpec.getJavadoc());
+    }
+    for (ThrowSpec exceptionSpec : exceptions) {
+      if (!exceptionSpec.getJavadoc().isEmpty()) {
+        // Emit a new line before @return section only if the method javadoc is present,
+        // and there are no parameters or return value.
+        if (emitTagNewline && !javadoc.isEmpty()) {
           builder.add("\n");
         }
         emitTagNewline = false;
-        builder.add("@param $L $L", parameterSpec.getName(), parameterSpec.getJavadoc());
+        builder.add("@throws $L $L\n", exceptionSpec.getType(), exceptionSpec.getJavadoc());
       }
     }
-    // todo ncoe: add return documentation
-    // todo ncoe: add throws documentation
     return builder.build();
   }
 
@@ -255,6 +273,17 @@ public final class MethodSpec {
   }
 
   /**
+   * Create builder for a method.
+   *
+   * @param name      the name
+   * @param modifiers the modifiers
+   * @return the builder
+   */
+  public static Builder methodBuilder(String name, Modifier... modifiers) {
+    return methodBuilder(name).addModifiers(modifiers);
+  }
+
+  /**
    * Create builder for a constructor.
    *
    * @return the builder
@@ -263,7 +292,15 @@ public final class MethodSpec {
     return new Builder(CONSTRUCTOR);
   }
 
-  //todo also allow modifiers in the method signature
+  /**
+   * Create builder for a constructor.
+   *
+   * @param modifiers the modifiers
+   * @return the builder
+   */
+  public static Builder constructorBuilder(Modifier... modifiers) {
+    return constructorBuilder().addModifiers(modifiers);
+  }
 
   /**
    * Returns a new method spec builder that overrides {@code method}.
@@ -370,7 +407,7 @@ public final class MethodSpec {
     builder.annotations.addAll(annotations);
     builder.modifiers.addAll(modifiers);
     builder.typeVariables.addAll(typeVariables);
-    builder.returnType = returnType;
+    builder.returnSpec = returnSpec;
     builder.parameters.addAll(parameters);
     builder.exceptions.addAll(exceptions);
     builder.code.add(code);
@@ -386,8 +423,8 @@ public final class MethodSpec {
     private String name;
 
     private final CodeBlock.Builder javadoc = CodeBlock.builder();
-    private TypeName returnType;
-    private final Set<TypeName> exceptions = new LinkedHashSet<>();
+    private ReturnSpec returnSpec;
+    private final Set<ThrowSpec> exceptions = new LinkedHashSet<>();
     private final CodeBlock.Builder code = CodeBlock.builder();
     private boolean varargs;
     private CodeBlock defaultValue;
@@ -431,7 +468,7 @@ public final class MethodSpec {
         name
       );
       this.name = name;
-      this.returnType = name.equals(CONSTRUCTOR) ? null : TypeName.VOID;
+      this.returnSpec = name.equals(CONSTRUCTOR) ? null : ReturnSpec.builder(TypeName.VOID).build();
       return this;
     }
 
@@ -558,13 +595,23 @@ public final class MethodSpec {
     /**
      * Add the return type.
      *
+     * @param returnSpec the return specification
+     * @return this
+     */
+    public Builder returns(ReturnSpec returnSpec) {
+      this.returnSpec = returnSpec;
+      return this;
+    }
+
+    /**
+     * Add the return type.
+     *
      * @param returnType the return type
      * @return this
      */
     public Builder returns(TypeName returnType) {
       checkState(!name.equals(CONSTRUCTOR), "constructor cannot have return type.");
-      this.returnType = returnType;
-      return this;
+      return returns(ReturnSpec.builder(returnType).build());
     }
 
     /**
@@ -655,8 +702,19 @@ public final class MethodSpec {
     public Builder addExceptions(Iterable<? extends TypeName> exceptions) {
       checkArgument(exceptions != null, "exceptions == null");
       for (TypeName exception : exceptions) {
-        this.exceptions.add(exception);
+        addException(exception);
       }
+      return this;
+    }
+
+    /**
+     * Add an exception.
+     *
+     * @param throwSpec the throw specification
+     * @return this
+     */
+    public Builder addException(ThrowSpec throwSpec) {
+      this.exceptions.add(throwSpec);
       return this;
     }
 
@@ -667,8 +725,7 @@ public final class MethodSpec {
      * @return this
      */
     public Builder addException(TypeName exception) {
-      this.exceptions.add(exception);
-      return this;
+      return addException(ThrowSpec.builder(exception).build());
     }
 
     /**

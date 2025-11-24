@@ -20,6 +20,7 @@ import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 
 public class UtilTest {
+  @SuppressWarnings("UnnecessaryUnicodeEscape")
   @Test
   public void characterLiteral() {
     assertEquals("a", Util.characterLiteralWithoutSingleQuotes('a'));
@@ -71,7 +72,7 @@ public class UtilTest {
     stringLiteral(string, string, " ");
   }
 
-  void stringLiteral(String expected, String value, String indent) {
+  void stringLiteral(String expected, String value, @SuppressWarnings("SameParameterValue") String indent) {
     assertEquals("\"" + expected + "\"", Util.stringLiteralWithDoubleQuotes(value, indent));
   }
 }

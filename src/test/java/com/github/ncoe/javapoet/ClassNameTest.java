@@ -34,7 +34,7 @@ import static org.mockito.Mockito.when;
 @RunWith(JUnit4.class)
 public final class ClassNameTest {
   @Rule
-  public CompilationRule compilationRule = new CompilationRule();
+  public final CompilationRule compilationRule = new CompilationRule();
 
   @Test
   public void bestGuessForString_simpleClass() {
@@ -128,7 +128,7 @@ public final class ClassNameTest {
    * {@link TypeElement#getKind()}. Test to confirm that we don't use that API.
    */
   @Test
-  public void classNameFromTypeElementDoesntUseGetKind() {
+  public void classNameFromTypeElementDoesNotUseGetKind() {
     Elements elements = compilationRule.getElements();
     TypeElement object = elements.getTypeElement(Object.class.getCanonicalName());
     assertThat(ClassName.get(preventGetKind(object)).toString())

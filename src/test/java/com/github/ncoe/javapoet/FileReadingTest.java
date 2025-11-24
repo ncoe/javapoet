@@ -97,8 +97,7 @@ public class FileReadingTest {
   @Test
   public void compileJavaFile() throws Exception {
     final String value = "Hello World!";
-    TypeSpec type = TypeSpec.classBuilder("Test")
-      .addModifiers(Modifier.PUBLIC)
+    TypeSpec type = TypeSpec.classBuilder("Test", Modifier.PUBLIC)
       .addSuperinterface(ParameterizedTypeName.get(Callable.class, String.class))
       .addMethod(MethodSpec.methodBuilder("call")
         .returns(String.class)

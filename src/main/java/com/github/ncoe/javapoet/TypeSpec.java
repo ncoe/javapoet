@@ -216,6 +216,17 @@ public final class TypeSpec {
   /**
    * Create a class type builder.
    *
+   * @param name      the name
+   * @param modifiers the modifiers
+   * @return the builder
+   */
+  public static Builder classBuilder(String name, Modifier... modifiers) {
+    return classBuilder(name).addModifiers(modifiers);
+  }
+
+  /**
+   * Create a class type builder.
+   *
    * @param className the class name
    * @return the builder
    */
@@ -223,7 +234,16 @@ public final class TypeSpec {
     return classBuilder(checkNotNull(className, "className == null").simpleName());
   }
 
-  //todo what about having modifiers as part of a method signature
+  /**
+   * Create a class type builder.
+   *
+   * @param className the class name
+   * @param modifiers the modifiers
+   * @return the builder
+   */
+  public static Builder classBuilder(ClassName className, Modifier... modifiers) {
+    return classBuilder(className).addModifiers(modifiers);
+  }
 
   /**
    * Create an interface type builder.
@@ -238,11 +258,33 @@ public final class TypeSpec {
   /**
    * Create an interface type builder.
    *
+   * @param name      the name
+   * @param modifiers the modifiers
+   * @return the builder
+   */
+  public static Builder interfaceBuilder(String name, Modifier... modifiers) {
+    return interfaceBuilder(name).addModifiers(modifiers);
+  }
+
+  /**
+   * Create an interface type builder.
+   *
    * @param className the class name
    * @return the builder
    */
   public static Builder interfaceBuilder(ClassName className) {
     return interfaceBuilder(checkNotNull(className, "className == null").simpleName());
+  }
+
+  /**
+   * Create an interface type builder.
+   *
+   * @param className the class name
+   * @param modifiers the modifiers
+   * @return the builder
+   */
+  public static Builder interfaceBuilder(ClassName className, Modifier... modifiers) {
+    return interfaceBuilder(className).addModifiers(modifiers);
   }
 
   /**
@@ -258,11 +300,33 @@ public final class TypeSpec {
   /**
    * Create an enum type builder.
    *
+   * @param name      the name
+   * @param modifiers the modifiers
+   * @return the builder
+   */
+  public static Builder enumBuilder(String name, Modifier... modifiers) {
+    return enumBuilder(name).addModifiers(modifiers);
+  }
+
+  /**
+   * Create an enum type builder.
+   *
    * @param className the class name
    * @return the builder
    */
   public static Builder enumBuilder(ClassName className) {
     return enumBuilder(checkNotNull(className, "className == null").simpleName());
+  }
+
+  /**
+   * Create an enum type builder.
+   *
+   * @param className the class name
+   * @param modifiers the modifiers
+   * @return the builder
+   */
+  public static Builder enumBuilder(ClassName className, Modifier... modifiers) {
+    return enumBuilder(className).addModifiers(modifiers);
   }
 
   /**
@@ -299,11 +363,33 @@ public final class TypeSpec {
   /**
    * Create a type builder for an annotation.
    *
+   * @param name      the name
+   * @param modifiers the modifiers
+   * @return the builder
+   */
+  public static Builder annotationBuilder(String name, Modifier... modifiers) {
+    return annotationBuilder(name).addModifiers(modifiers);
+  }
+
+  /**
+   * Create a type builder for an annotation.
+   *
    * @param className the class name
    * @return the builder
    */
   public static Builder annotationBuilder(ClassName className) {
     return annotationBuilder(checkNotNull(className, "className == null").simpleName());
+  }
+
+  /**
+   * Create a type builder for an annotation.
+   *
+   * @param className the class name
+   * @param modifiers the modifiers
+   * @return the builder
+   */
+  public static Builder annotationBuilder(ClassName className, Modifier... modifiers) {
+    return annotationBuilder(className).addModifiers(modifiers);
   }
 
   /**

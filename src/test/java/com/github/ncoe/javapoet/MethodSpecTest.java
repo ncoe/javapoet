@@ -342,12 +342,12 @@ public final class MethodSpecTest {
   public void withParameterJavaDoc() {
     MethodSpec methodSpec = MethodSpec.methodBuilder("getTaco")
       .addParameter(ParameterSpec.builder(TypeName.DOUBLE, "money")
-        .addJavadoc("the amount required to buy the taco.\n")
+        .addJavadoc("the amount required to buy the taco.")
         .build())
       .addParameter(ParameterSpec.builder(TypeName.INT, "count")
-        .addJavadoc("the number of Tacos to buy.\n")
+        .addJavadoc("the number of Tacos to buy.")
         .build())
-      .addJavadoc("Gets the best Taco money can buy.\n")
+      .addJavadoc("Gets the best Taco money can buy.")
       .build();
     assertThat(methodSpec.toString()).isEqualTo("""
       /**
@@ -365,10 +365,10 @@ public final class MethodSpecTest {
   public void withParameterJavaDocAndWithoutMethodJavadoc() {
     MethodSpec methodSpec = MethodSpec.methodBuilder("getTaco")
       .addParameter(ParameterSpec.builder(TypeName.DOUBLE, "money")
-        .addJavadoc("the amount required to buy the taco.\n")
+        .addJavadoc("the amount required to buy the taco.")
         .build())
       .addParameter(ParameterSpec.builder(TypeName.INT, "count")
-        .addJavadoc("the number of Tacos to buy.\n")
+        .addJavadoc("the number of Tacos to buy.")
         .build())
       .build();
     assertThat(methodSpec.toString()).isEqualTo("""
@@ -385,10 +385,10 @@ public final class MethodSpecTest {
   public void withParameterJavaDocBlocks() {
     MethodSpec methodSpec = MethodSpec.methodBuilder("getTaco")
       .addParameter(ParameterSpec.builder(TypeName.DOUBLE, "money")
-        .addJavadoc(CodeBlock.of("the amount required to buy the taco.\n"))
+        .addJavadoc(CodeBlock.of("the amount required to buy the taco."))
         .build())
       .addParameter(ParameterSpec.builder(TypeName.INT, "count")
-        .addJavadoc(CodeBlock.of("the number of Tacos to buy.\n"))
+        .addJavadoc(CodeBlock.of("the number of Tacos to buy."))
         .build())
       .build();
     assertThat(methodSpec.toString()).isEqualTo("""
@@ -411,9 +411,14 @@ public final class MethodSpecTest {
       .addException(timeoutException)
       .addException(ioException)
       .build();
-    assertThat(methodSpec.getExceptions()).isEqualTo(Arrays.asList(ioException, timeoutException));
+    List<ThrowSpec> throwsList = Arrays.asList(
+      ThrowSpec.builder(ioException).build(),
+      ThrowSpec.builder(timeoutException).build()
+    );
+    assertThat(methodSpec.getExceptions())
+      .isEqualTo(throwsList);
     assertThat(methodSpec.toBuilder().addException(ioException).build().getExceptions())
-      .isEqualTo(Arrays.asList(ioException, timeoutException));
+      .isEqualTo(throwsList);
   }
 
   @Test

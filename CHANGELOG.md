@@ -7,6 +7,9 @@ JavaPoet 2.0.0 Unreleased
 * Updated dependencies
 * Replaced direct variable access with getters
 * Filled out javadoc, and resolved other checkstyle issues
+* Modifiers can be defined when creating a builder for a TypeSpec
+* The column limit can be adjusted when writing a javaFile
+* The return value and exceptions can have javadoc attached to automatically populate @param and @throws
 
 JavaPoet 1.13.0 *(2020-06-18)*
 -----------------------------

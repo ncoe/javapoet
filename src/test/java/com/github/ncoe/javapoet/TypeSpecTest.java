@@ -183,8 +183,7 @@ public final class TypeSpecTest {
   @Test
   public void annotatedParameters() {
     TypeSpec service = TypeSpec.classBuilder("Foo")
-      .addMethod(MethodSpec.constructorBuilder()
-        .addModifiers(Modifier.PUBLIC)
+      .addMethod(MethodSpec.constructorBuilder(Modifier.PUBLIC)
         .addParameter(long.class, "id")
         .addParameter(ParameterSpec.builder(String.class, "one")
           .addAnnotation(ClassName.get(tacosPackage, "Ping"))
@@ -300,6 +299,23 @@ public final class TypeSpecTest {
             @Header("Authorization") String authorization);
       }
       """);
+
+    assertThat(JavaFile.builder(tacosPackage, service).useColumnLimit(120).build().toString()).isEqualTo("""
+      package com.github.ncoe.tacos;
+      
+      import java.lang.String;
+      import java.util.Map;
+      
+      interface Service {
+        @Headers({
+            "Accept: application/json",
+            "User-Agent: foobar"
+        })
+        @POST("/foo/bar")
+        Observable<FooBar> fooBar(@Body Things<Thing> things, @QueryMap(encodeValues = false) Map<String, String> query,
+            @Header("Authorization") String authorization);
+      }
+      """);
   }
 
   @Test
@@ -326,13 +342,12 @@ public final class TypeSpecTest {
   @Test
   public void annotatedClass() {
     ClassName someType = ClassName.get(tacosPackage, "SomeType");
-    TypeSpec taco = TypeSpec.classBuilder("Foo")
+    TypeSpec taco = TypeSpec.classBuilder("Foo", Modifier.PUBLIC)
       .addAnnotation(AnnotationSpec.builder(ClassName.get(tacosPackage, "Something"))
         .addMember("hi", "$T.$N", someType, "FIELD")
         .addMember("hey", "$L", 12)
         .addMember("hello", "$S", "goodbye")
         .build())
-      .addModifiers(Modifier.PUBLIC)
       .build();
     assertThat(toString(taco)).isEqualTo("""
       package com.github.ncoe.tacos;
@@ -371,8 +386,7 @@ public final class TypeSpecTest {
 
   @Test
   public void enumWithSubclassing() {
-    TypeSpec roshambo = TypeSpec.enumBuilder("Roshambo")
-      .addModifiers(Modifier.PUBLIC)
+    TypeSpec roshambo = TypeSpec.enumBuilder("Roshambo", Modifier.PUBLIC)
       .addEnumConstant("ROCK", TypeSpec.anonymousClassBuilder("")
         .addJavadoc("Avalanche!\n")
         .build())
@@ -434,8 +448,7 @@ public final class TypeSpecTest {
    */
   @Test
   public void enumsMayDefineAbstractMethods() {
-    TypeSpec roshambo = TypeSpec.enumBuilder("Tortilla")
-      .addModifiers(Modifier.PUBLIC)
+    TypeSpec roshambo = TypeSpec.enumBuilder("Tortilla", Modifier.PUBLIC)
       .addEnumConstant("CORN", TypeSpec.anonymousClassBuilder("")
         .addMethod(MethodSpec.methodBuilder("fold")
           .addAnnotation(Override.class)
@@ -525,8 +538,7 @@ public final class TypeSpecTest {
    */
   @Test
   public void enumWithAnnotatedValues() {
-    TypeSpec roshambo = TypeSpec.enumBuilder("Roshambo")
-      .addModifiers(Modifier.PUBLIC)
+    TypeSpec roshambo = TypeSpec.enumBuilder("Roshambo", Modifier.PUBLIC)
       .addEnumConstant("ROCK", TypeSpec.anonymousClassBuilder("")
         .addAnnotation(Deprecated.class)
         .build())
@@ -551,8 +563,7 @@ public final class TypeSpecTest {
 
   @Test
   public void methodThrows() {
-    TypeSpec taco = TypeSpec.classBuilder("Taco")
-      .addModifiers(Modifier.ABSTRACT)
+    TypeSpec taco = TypeSpec.classBuilder("Taco", Modifier.ABSTRACT)
       .addMethod(MethodSpec.methodBuilder("throwOne")
         .addException(IOException.class)
         .build())
@@ -560,12 +571,10 @@ public final class TypeSpecTest {
         .addException(IOException.class)
         .addException(ClassName.get(tacosPackage, "SourCreamException"))
         .build())
-      .addMethod(MethodSpec.methodBuilder("abstractThrow")
-        .addModifiers(Modifier.ABSTRACT)
+      .addMethod(MethodSpec.methodBuilder("abstractThrow", Modifier.ABSTRACT)
         .addException(IOException.class)
         .build())
-      .addMethod(MethodSpec.methodBuilder("nativeThrow")
-        .addModifiers(Modifier.NATIVE)
+      .addMethod(MethodSpec.methodBuilder("nativeThrow", Modifier.NATIVE)
         .addException(IOException.class)
         .build())
       .build();
@@ -699,8 +708,7 @@ public final class TypeSpecTest {
   public void classImplementsExtends() {
     ClassName taco = ClassName.get(tacosPackage, "Taco");
     ClassName food = ClassName.get("com.github.ncoe.tacos", "Food");
-    TypeSpec typeSpec = TypeSpec.classBuilder("Taco")
-      .addModifiers(Modifier.ABSTRACT)
+    TypeSpec typeSpec = TypeSpec.classBuilder("Taco", Modifier.ABSTRACT)
       .superclass(ParameterizedTypeName.get(ClassName.get(AbstractSet.class), food))
       .addSuperinterface(Serializable.class)
       .addSuperinterface(ParameterizedTypeName.get(ClassName.get(Comparable.class), taco))
@@ -725,8 +733,7 @@ public final class TypeSpecTest {
     TypeSpec typeSpec = TypeSpec.classBuilder("Outer")
       .superclass(ParameterizedTypeName.get(callable,
         inner))
-      .addType(TypeSpec.classBuilder("Inner")
-        .addModifiers(Modifier.STATIC)
+      .addType(TypeSpec.classBuilder("Inner", Modifier.STATIC)
         .build())
       .build();
 
@@ -791,8 +798,7 @@ public final class TypeSpecTest {
     TypeSpec typeSpec = TypeSpec.classBuilder("Combo")
       .addField(taco, "taco")
       .addField(chips, "chips")
-      .addType(TypeSpec.classBuilder(taco.simpleName())
-        .addModifiers(Modifier.STATIC)
+      .addType(TypeSpec.classBuilder(taco.simpleName(), Modifier.STATIC)
         .addField(ParameterizedTypeName.get(ClassName.get(List.class), topping), "toppings")
         .addField(sauce, "sauce")
         .addType(TypeSpec.enumBuilder(topping.simpleName())
@@ -800,8 +806,7 @@ public final class TypeSpecTest {
           .addEnumConstant("LEAN_GROUND_BEEF")
           .build())
         .build())
-      .addType(TypeSpec.classBuilder(chips.simpleName())
-        .addModifiers(Modifier.STATIC)
+      .addType(TypeSpec.classBuilder(chips.simpleName(), Modifier.STATIC)
         .addField(topping, "topping")
         .addField(sauce, "dippingSauce")
         .build())
@@ -859,10 +864,8 @@ public final class TypeSpecTest {
 
   @Test
   public void annotation() {
-    TypeSpec annotation = TypeSpec.annotationBuilder("MyAnnotation")
-      .addModifiers(Modifier.PUBLIC)
-      .addMethod(MethodSpec.methodBuilder("test")
-        .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
+    TypeSpec annotation = TypeSpec.annotationBuilder("MyAnnotation", Modifier.PUBLIC)
+      .addMethod(MethodSpec.methodBuilder("test", Modifier.PUBLIC, Modifier.ABSTRACT)
         .defaultValue("$L", 0)
         .returns(int.class)
         .build())
@@ -1565,11 +1568,9 @@ public final class TypeSpecTest {
         .addModifiers(Modifier.PUBLIC, Modifier.STATIC, Modifier.FINAL)
         .initializer("$S", "crunchy corn")
         .build())
-      .addMethod(MethodSpec.methodBuilder("fold")
-        .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
+      .addMethod(MethodSpec.methodBuilder("fold", Modifier.PUBLIC, Modifier.ABSTRACT)
         .build())
-      .addType(TypeSpec.classBuilder("Topping")
-        .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
+      .addType(TypeSpec.classBuilder("Topping", Modifier.PUBLIC, Modifier.STATIC)
         .build())
       .build();
     assertThat(toString(taco)).isEqualTo("""
@@ -1591,14 +1592,11 @@ public final class TypeSpecTest {
   @Test
   public void defaultModifiersForMemberInterfacesAndEnums() {
     TypeSpec taco = TypeSpec.classBuilder("Taco")
-      .addType(TypeSpec.classBuilder("Meat")
-        .addModifiers(Modifier.STATIC)
+      .addType(TypeSpec.classBuilder("Meat", Modifier.STATIC)
         .build())
-      .addType(TypeSpec.interfaceBuilder("Tortilla")
-        .addModifiers(Modifier.STATIC)
+      .addType(TypeSpec.interfaceBuilder("Tortilla", Modifier.STATIC)
         .build())
-      .addType(TypeSpec.enumBuilder("Topping")
-        .addModifiers(Modifier.STATIC)
+      .addType(TypeSpec.enumBuilder("Topping", Modifier.STATIC)
         .addEnumConstant("SALSA")
         .build())
       .build();
@@ -2748,7 +2746,7 @@ public final class TypeSpecTest {
   @Test
   public void modifyModifiers() {
     TypeSpec.Builder builder =
-      TypeSpec.classBuilder("Taco").addModifiers(Modifier.PUBLIC, Modifier.FINAL);
+      TypeSpec.classBuilder("Taco", Modifier.PUBLIC, Modifier.FINAL);
 
     builder.getModifiers().remove(1);
     assertThat(builder.build().getModifiers()).containsExactly(Modifier.PUBLIC);
@@ -2872,7 +2870,7 @@ public final class TypeSpecTest {
   }
 
   @Test
-  public void getAlwaysQualifiedNames(){
+  public void getAlwaysQualifiedNames() {
     Set<String> alwaysQualifiedNames = TypeSpec
       .interfaceBuilder("InterfaceName")
       .alwaysQualify("simpleName")
@@ -2881,10 +2879,9 @@ public final class TypeSpecTest {
   }
 
   @Test
-  public void typeProperties(){
+  public void typeProperties() {
     TypeSpec typeSpec = TypeSpec
-      .interfaceBuilder("Name")
-      .addModifiers(Modifier.PUBLIC)
+      .interfaceBuilder("Name", Modifier.PUBLIC)
       .build();
     assertThat(typeSpec.getKind()).isEqualTo(TypeSpec.Kind.INTERFACE);
     assertThat(typeSpec.getAnonymousTypeArguments()).isNull();
@@ -2900,5 +2897,14 @@ public final class TypeSpecTest {
     TypeVariableName tvn = TypeVariableName.get("T");
     TypeName wo = tvn.withoutAnnotations();
     assertThat(wo).isNotNull();
+  }
+
+  @Test
+  public void withModifiers() {
+    ClassName className = ClassName.get("foo", "Bar");
+    TypeSpec.annotationBuilder(className, Modifier.PUBLIC).build();
+    TypeSpec.classBuilder(className, Modifier.PUBLIC).build();
+    TypeSpec.enumBuilder(className, Modifier.PUBLIC).build();
+    TypeSpec.interfaceBuilder(className, Modifier.PUBLIC).build();
   }
 }

@@ -93,6 +93,7 @@ public final class JavaFileTest {
       """);
   }
 
+  @SuppressWarnings("ResultOfMethodCallIgnored")
   @Test
   public void importStaticForCrazyFormatsWorks() {
     MethodSpec method = MethodSpec.methodBuilder("method").build();
@@ -263,7 +264,7 @@ public final class JavaFileTest {
       """);
   }
 
-  private TypeSpec importStaticTypeSpec(String name) {
+  private TypeSpec importStaticTypeSpec(@SuppressWarnings("SameParameterValue") String name) {
     MethodSpec method = MethodSpec.methodBuilder("minutesToSeconds")
       .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
       .returns(long.class)
@@ -364,14 +365,16 @@ public final class JavaFileTest {
       .skipJavaLangImports(true)
       .build()
       .toString();
-    assertThat(source).isEqualTo(""
-      + "package com.github.ncoe.tacos;\n"
-      + "\n"
-      + "class Taco {\n"
-      + "  Float litres;\n"
-      + "\n"
-      + "  com.github.ncoe.soda.Float beverage;\n" // Second 'Float' is fully qualified.
-      + "}\n");
+    // Second 'Float' is fully qualified.
+    assertThat(source).isEqualTo("""
+      package com.github.ncoe.tacos;
+      
+      class Taco {
+        Float litres;
+      
+        com.github.ncoe.soda.Float beverage;
+      }
+      """);
   }
 
   @Test
@@ -385,16 +388,18 @@ public final class JavaFileTest {
       .skipJavaLangImports(true)
       .build()
       .toString();
-    assertThat(source).isEqualTo(""
-      + "package com.github.ncoe.tacos;\n"
-      + "\n"
-      + "import com.github.ncoe.soda.Float;\n"
-      + "\n"
-      + "class Taco {\n"
-      + "  Float beverage;\n"
-      + "\n"
-      + "  java.lang.Float litres;\n" // Second 'Float' is fully qualified.
-      + "}\n");
+    // Second 'Float' is fully qualified.
+    assertThat(source).isEqualTo("""
+      package com.github.ncoe.tacos;
+      
+      import com.github.ncoe.soda.Float;
+      
+      class Taco {
+        Float beverage;
+      
+        java.lang.Float litres;
+      }
+      """);
   }
 
   @Test
@@ -627,7 +632,7 @@ public final class JavaFileTest {
   }
 
   /**
-   * https://github.com/square/javapoet/issues/366
+   * github.com/square/javapoet/issues/366
    */
   @Test
   public void annotationIsNestedClass() {
@@ -750,7 +755,7 @@ public final class JavaFileTest {
   }
 
   @Test
-  public void packageClassConflictsWithSuperlass() {
+  public void packageClassConflictsWithSuperclass() {
     String source = JavaFile.builder("com.github.ncoe.tacos",
         TypeSpec.classBuilder("Taco")
           .superclass(ClassName.get("com.taco.bell", "A"))
@@ -935,20 +940,24 @@ public final class JavaFileTest {
   }
 
   static class Foo {
+    @SuppressWarnings("unused")
     static class NestedTypeA {
 
     }
 
+    @SuppressWarnings("unused")
     static class NestedTypeB {
 
     }
   }
 
   interface FooInterface {
+    @SuppressWarnings("unused")
     class NestedTypeA {
 
     }
 
+    @SuppressWarnings("unused")
     class NestedTypeB {
 
     }
@@ -1063,12 +1072,14 @@ public final class JavaFileTest {
   // Regression test for https://github.com/square/javapoet/issues/77
   // This covers class and inheritance
   static class Parent implements ParentInterface {
+    @SuppressWarnings("unused")
     static class Pattern {
 
     }
   }
 
   interface ParentInterface {
+    @SuppressWarnings("unused")
     class Optional {
 
     }

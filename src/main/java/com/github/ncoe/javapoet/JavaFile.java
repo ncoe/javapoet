@@ -71,6 +71,7 @@ public final class JavaFile {
   private final Set<String> staticImports;
   private final Set<String> alwaysQualify;
   private final String indent;
+  private final int columnLimit;
 
   private JavaFile(Builder builder) {
     this.fileComment = builder.fileComment.build();
@@ -79,6 +80,7 @@ public final class JavaFile {
     this.skipJavaLangImports = builder.skipJavaLangImports;
     this.staticImports = Util.immutableSet(builder.staticImports);
     this.indent = builder.indent;
+    this.columnLimit = builder.columnLimit;
 
     Set<String> alwaysQualifiedNames = new LinkedHashSet<>();
     fillAlwaysQualifiedNames(builder.typeSpec, alwaysQualifiedNames);
@@ -111,9 +113,8 @@ public final class JavaFile {
 
     // Second pass: write the code, taking advantage of the imports.
     CodeWriter codeWriter = new CodeWriter(
-      out, indent, suggestedImports, staticImports, alwaysQualify
+      out, indent, suggestedImports, staticImports, alwaysQualify, columnLimit
     );
-    //todo allow for changing where columns wrap
     emit(codeWriter);
   }
 
@@ -364,8 +365,10 @@ public final class JavaFile {
     private final String packageName;
     private final TypeSpec typeSpec;
     private final CodeBlock.Builder fileComment = CodeBlock.builder();
+
     private boolean skipJavaLangImports;
     private String indent = "  ";
+    private int columnLimit = 100;
 
     private final Set<String> staticImports = new TreeSet<>();
 
@@ -442,6 +445,18 @@ public final class JavaFile {
      */
     public Builder skipJavaLangImports(boolean skipJavaLangImports) {
       this.skipJavaLangImports = skipJavaLangImports;
+      return this;
+    }
+
+    /**
+     * Change the column limit.
+     *
+     * @param columnLimit the new column limit
+     * @return this
+     */
+    public Builder useColumnLimit(int columnLimit) {
+      Util.checkArgument(columnLimit > 0, "limit must be positive");
+      this.columnLimit = columnLimit;
       return this;
     }
 

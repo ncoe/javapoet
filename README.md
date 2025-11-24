@@ -496,7 +496,7 @@ CodeBlock.builder().addNamed("I ate $count:L $food:L", map)
 
 ### Methods
 
-All of the above methods have a code body. Use `Modifiers.ABSTRACT` to get a method without any
+All of the above methods have a code body. Use `Modifiers.ABSTRACT` to get a method without a
 body. This is only legal if the enclosing class is either abstract or an interface.
 
 ```java
@@ -893,7 +893,7 @@ Use `$T` when referencing types in Javadoc to get automatic imports.
 Download
 --------
 
-Download [the latest .jar][dl] or depend via Maven:
+Download [the latest .jar][dl] or dependency via Maven:
 ```xml
 <dependency>
   <groupId>com.github.ncoe</groupId>
