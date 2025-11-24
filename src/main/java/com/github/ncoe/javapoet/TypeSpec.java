@@ -655,6 +655,9 @@ public final class TypeSpec {
       Collections.emptySet()
     ),
 
+    //todo record builder
+    //todo sealed classes
+
     INTERFACE(
       Util.immutableSet(Arrays.asList(Modifier.PUBLIC, Modifier.STATIC, Modifier.FINAL)),
       Util.immutableSet(Arrays.asList(Modifier.PUBLIC, Modifier.ABSTRACT)),
