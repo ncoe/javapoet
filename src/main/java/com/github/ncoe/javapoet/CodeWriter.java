@@ -33,8 +33,12 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 import static com.github.ncoe.javapoet.Util.checkArgument;
+import static com.github.ncoe.javapoet.Util.checkEquals;
+import static com.github.ncoe.javapoet.Util.checkIsNull;
+import static com.github.ncoe.javapoet.Util.checkNotEquals;
 import static com.github.ncoe.javapoet.Util.checkNotNull;
-import static com.github.ncoe.javapoet.Util.checkState;
+import static com.github.ncoe.javapoet.Util.checkNotSame;
+import static com.github.ncoe.javapoet.Util.checkSame;
 import static com.github.ncoe.javapoet.Util.stringLiteralWithDoubleQuotes;
 
 /**
@@ -122,16 +126,14 @@ final class CodeWriter {
 
   @SuppressWarnings("UnusedReturnValue")
   public CodeWriter pushPackage(String packageName) {
-    //noinspection StringEquality
-    checkState(this.packageName == NO_PACKAGE, "package already set: %s", this.packageName);
+    checkSame(this.packageName, NO_PACKAGE, "package already set: %s", this.packageName);
     this.packageName = checkNotNull(packageName, "packageName == null");
     return this;
   }
 
   @SuppressWarnings("UnusedReturnValue")
   public CodeWriter popPackage() {
-    //noinspection StringEquality
-    checkState(this.packageName != NO_PACKAGE, "package not set");
+    checkNotSame(this.packageName, NO_PACKAGE, "package not set");
     this.packageName = NO_PACKAGE;
     return this;
   }
@@ -230,7 +232,7 @@ final class CodeWriter {
           if (typeName instanceof ClassName candidate && partIterator.hasNext()) {
             if (!codeBlock.formatParts.get(partIterator.nextIndex()).startsWith("$")) {
               if (staticImportClassNames.contains(candidate.canonicalName())) {
-                checkState(deferredTypeName == null, "pending type for static import?!");
+                checkIsNull(deferredTypeName, "pending type for static import?!");
                 deferredTypeName = candidate;
                 break;
               }
@@ -252,12 +254,12 @@ final class CodeWriter {
           break;
 
         case "$[":
-          checkState(statementLine == -1, "statement enter $[ followed by statement enter $[");
+          checkEquals(statementLine, -1, "statement enter $[ followed by statement enter $[");
           statementLine = 0;
           break;
 
         case "$]":
-          checkState(statementLine != -1, "statement exit $] has no matching statement enter $[");
+          checkNotEquals(statementLine, -1, "statement exit $] has no matching statement enter $[");
           if (statementLine > 0) {
             unindent(2); // End a multi-line statement. Decrease the indentation level.
           }

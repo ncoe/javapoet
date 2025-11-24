@@ -37,8 +37,9 @@ import java.util.Map;
 import java.util.Set;
 
 import static com.github.ncoe.javapoet.Util.checkArgument;
+import static com.github.ncoe.javapoet.Util.checkIsNull;
+import static com.github.ncoe.javapoet.Util.checkNotEquals;
 import static com.github.ncoe.javapoet.Util.checkNotNull;
-import static com.github.ncoe.javapoet.Util.checkState;
 
 /**
  * A generated constructor or method declaration.
@@ -610,7 +611,7 @@ public final class MethodSpec {
      * @return this
      */
     public Builder returns(TypeName returnType) {
-      checkState(!name.equals(CONSTRUCTOR), "constructor cannot have return type.");
+      checkNotEquals(name, CONSTRUCTOR, "constructor cannot have return type.");
       return returns(ReturnSpec.builder(returnType).build());
     }
 
@@ -803,7 +804,7 @@ public final class MethodSpec {
      * @return this
      */
     public Builder defaultValue(CodeBlock codeBlock) {
-      checkState(this.defaultValue == null, "defaultValue was already set");
+      checkIsNull(this.defaultValue, "defaultValue was already set");
       this.defaultValue = checkNotNull(codeBlock, "codeBlock == null");
       return this;
     }

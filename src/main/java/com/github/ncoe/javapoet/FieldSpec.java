@@ -26,8 +26,8 @@ import java.util.List;
 import java.util.Set;
 
 import static com.github.ncoe.javapoet.Util.checkArgument;
+import static com.github.ncoe.javapoet.Util.checkIsNull;
 import static com.github.ncoe.javapoet.Util.checkNotNull;
-import static com.github.ncoe.javapoet.Util.checkState;
 
 /**
  * A generated field declaration.
@@ -281,7 +281,7 @@ public final class FieldSpec {
      * @return this
      */
     public Builder initializer(CodeBlock codeBlock) {
-      checkState(this.initializer == null, "initializer was already set");
+      checkIsNull(this.initializer, "initializer was already set");
       this.initializer = checkNotNull(codeBlock, "codeBlock == null");
       return this;
     }

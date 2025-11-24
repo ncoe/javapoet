@@ -251,6 +251,8 @@ public final class JavaFile {
       codeWriter.emit("\n");
     }
 
+    //todo allow for specifying if static imports come first or second?
+
     int importedTypesCount = 0;
     for (ClassName className : new TreeSet<>(codeWriter.importedTypes().values())) {
       if (skipJavaLangImports

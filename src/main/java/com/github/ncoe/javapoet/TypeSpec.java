@@ -40,8 +40,11 @@ import java.util.Map;
 import java.util.Set;
 
 import static com.github.ncoe.javapoet.Util.checkArgument;
+import static com.github.ncoe.javapoet.Util.checkEquals;
+import static com.github.ncoe.javapoet.Util.checkIsFalse;
+import static com.github.ncoe.javapoet.Util.checkIsNull;
+import static com.github.ncoe.javapoet.Util.checkIsTrue;
 import static com.github.ncoe.javapoet.Util.checkNotNull;
-import static com.github.ncoe.javapoet.Util.checkState;
 import static com.github.ncoe.javapoet.Util.requireExactlyOneOf;
 
 /**
@@ -872,10 +875,9 @@ public final class TypeSpec {
      * @return this
      */
     public Builder superclass(TypeName superclass) {
-      checkState(this.kind == Kind.CLASS, "only classes have super classes, not " + this.kind);
-      checkState(
-        this.superclass == ClassName.OBJECT,
-        "superclass already set to " + this.superclass
+      checkEquals(this.kind, Kind.CLASS, "only classes have super classes, not " + this.kind);
+      checkEquals(
+        this.superclass, ClassName.OBJECT, "superclass already set to " + this.superclass
       );
       checkArgument(!superclass.isPrimitive(), "superclass may not be a primitive");
       this.superclass = superclass;
@@ -1299,7 +1301,7 @@ public final class TypeSpec {
       }
 
       if (!modifiers.isEmpty()) {
-        checkState(anonymousTypeArguments == null, "forbidden on anonymous types.");
+        checkIsNull(anonymousTypeArguments, "forbidden on anonymous types.");
         for (Modifier modifier : modifiers) {
           checkArgument(modifier != null, "modifiers contain null");
         }
@@ -1310,17 +1312,14 @@ public final class TypeSpec {
       }
 
       if (!typeVariables.isEmpty()) {
-        checkState(
-          anonymousTypeArguments == null,
-          "typeVariables are forbidden on anonymous types."
-        );
+        checkIsNull(anonymousTypeArguments, "typeVariables are forbidden on anonymous types.");
         for (TypeVariableName typeVariableName : typeVariables) {
           checkArgument(typeVariableName != null, "typeVariables contain null");
         }
       }
 
       for (Map.Entry<String, TypeSpec> enumConstant : enumConstants.entrySet()) {
-        checkState(kind == Kind.ENUM, "%s is not enum", this.name);
+        checkEquals(kind, Kind.ENUM, "%s is not enum", this.name);
         checkArgument(
           enumConstant.getValue().anonymousTypeArguments != null,
           "enum constants must have anonymous type arguments"
@@ -1332,7 +1331,7 @@ public final class TypeSpec {
         if (kind == Kind.INTERFACE || kind == Kind.ANNOTATION) {
           requireExactlyOneOf(fieldSpec.getModifiers(), Modifier.PUBLIC, Modifier.PRIVATE);
           Set<Modifier> check = EnumSet.of(Modifier.STATIC, Modifier.FINAL);
-          checkState(
+          checkIsTrue(
             fieldSpec.getModifiers().containsAll(check),
             "%s %s.%s requires modifiers %s",
             kind, name, fieldSpec.getName(), check
@@ -1344,13 +1343,13 @@ public final class TypeSpec {
         if (kind == Kind.INTERFACE) {
           requireExactlyOneOf(methodSpec.getModifiers(), Modifier.PUBLIC, Modifier.PRIVATE);
           if (methodSpec.getModifiers().contains(Modifier.PRIVATE)) {
-            checkState(
-              !methodSpec.hasModifier(Modifier.DEFAULT),
+            checkIsFalse(
+              methodSpec.hasModifier(Modifier.DEFAULT),
               "%s %s.%s cannot be private and default",
               kind, name, methodSpec.getName()
             );
-            checkState(
-              !methodSpec.hasModifier(Modifier.ABSTRACT),
+            checkIsFalse(
+              methodSpec.hasModifier(Modifier.ABSTRACT),
               "%s %s.%s cannot be private and abstract",
               kind, name, methodSpec.getName()
             );
@@ -1360,22 +1359,22 @@ public final class TypeSpec {
             );
           }
         } else if (kind == Kind.ANNOTATION) {
-          checkState(
-            methodSpec.getModifiers().equals(kind.implicitMethodModifiers),
+          checkEquals(
+            methodSpec.getModifiers(), kind.implicitMethodModifiers,
             "%s %s.%s requires modifiers %s",
             kind, name, methodSpec.getName(), kind.implicitMethodModifiers
           );
         }
         if (kind != Kind.ANNOTATION) {
-          checkState(
-            methodSpec.getDefaultValue() == null,
+          checkIsNull(
+            methodSpec.getDefaultValue(),
             "%s %s.%s cannot have a default value",
             kind, name, methodSpec.getName()
           );
         }
         if (kind != Kind.INTERFACE) {
-          checkState(
-            !methodSpec.hasModifier(Modifier.DEFAULT),
+          checkIsFalse(
+            methodSpec.hasModifier(Modifier.DEFAULT),
             "%s %s.%s cannot be default",
             kind, name, methodSpec.getName()
           );

@@ -159,7 +159,6 @@ public final class JavaFileTest {
       """);
   }
 
-  @Ignore("addStaticImport doesn't support members with $L")
   @Test
   public void importStaticDynamic() {
     JavaFile source = JavaFile.builder("com.github.ncoe.tacos",
@@ -170,14 +169,17 @@ public final class JavaFileTest {
           .build())
       .addStaticImport(System.class, "out")
       .build();
+    //addStaticImport doesn't support members with $L
     assertThat(source.toString()).isEqualTo("""
       package com.github.ncoe.tacos;
       
       import static java.lang.System.out;
       
+      import java.lang.System;
+      
       class Taco {
         void main() {
-          out.println("hello");
+          System.out.println("hello");
         }
       }
       """);

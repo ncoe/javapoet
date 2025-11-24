@@ -25,6 +25,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -63,7 +64,33 @@ final class Util {
     return reference;
   }
 
-  static void checkState(boolean condition, String format, Object... args) {
+  static void checkIsNull(Object value, String format, Object... args) {
+    checkIsTrue(value == null, format, args);
+  }
+
+  static <T> void checkEquals(T lhs, T rhs, String format, Object... args) {
+    checkIsTrue(Objects.equals(lhs, rhs), format, args);
+  }
+
+  static <T> void checkNotEquals(T lhs, T rhs, String format, Object... args) {
+    checkIsTrue(!Objects.equals(lhs, rhs), format, args);
+  }
+
+  static <T> void checkSame(T lhs, T rhs, String format, Object... args) {
+    checkIsTrue(lhs == rhs, format, args);
+  }
+
+  static <T> void checkNotSame(T lhs, T rhs, String format, Object... args) {
+    checkIsTrue(lhs != rhs, format, args);
+  }
+
+  static void checkIsFalse(boolean condition, String format, Object... args) {
+    if (condition) {
+      throw new IllegalStateException(String.format(format, args));
+    }
+  }
+
+  static void checkIsTrue(boolean condition, String format, Object... args) {
     if (!condition) {
       throw new IllegalStateException(String.format(format, args));
     }
